@@ -1,47 +1,45 @@
-const baseURL = "https://earthpoint.onrender.com/api/v1";
-type CustomOptionsType = {
-    responseBodyType: "text" | "json" | "formData" | "blob" | "arrayBuffer" | "body",
-    timeout: number
-}
-type FetchAPIPropsType = {
-  path: string;
-  method?: "GET" | "POST" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
-  headers?: { [name: string]: string };
-  body?: string;
-  credentials?: "same-origin" | "omit" | "include";
-  keepalive?: boolean;
-  mode?: "cors" | "same-origin" | "no-cors";
-  customOptions: CustomOptionsType
-};
+import { FetchAPIPropsType } from "./types";
+import GETRequest from "./GET";
+
+/* ------------------------------------------------------------------------------------ */
+
+const responseFormat = [
+  "text",
+  "json",
+  "formData",
+  "blob",
+  "arrayBuffer",
+  "body",
+];
 
 export default async function fetcher({
-  path,
+  URL = "https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits",
   method = "GET",
   body,
   headers,
   credentials = "same-origin",
   keepalive = false,
   mode = "cors",
-  customOptions
+  customOptions,
 }: FetchAPIPropsType): Promise<string | any> {
-  const res = await fetch(`${baseURL}${path}`, {
-    method,
-    body,
-    headers,
-    credentials,
-    keepalive,
-    mode,
-  });
+  try {
+    const response = await fetch(`${URL}`, {
+      method,
+      body,
+      headers,
+      credentials,
+      keepalive,
+      mode,
+    });
 
-  if (customOptions.responseBodyType === "json") {
-    return {
-      data: res.json(),
-      _fetchObject: res,
-    };
+    if (method !== "GET") {
+      // Request other than a GET
+      // ...
+    }
+
+    // GET Requests
+    GETRequest(response);
+  } catch (error) {
+    console.log(error);
   }
-
-  return {
-    data: res.text(),
-    _fetchObject: res,
-  };
 }
