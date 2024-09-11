@@ -9,30 +9,45 @@ export default function GETRequest(response: Response) {
   const contentType = response.headers.get("Content-Type") as string;
 
   if (!response.ok) {
-    const errorDate = {
+    const errorData = {
       error: `HTTP error! status: ${response.status}`,
-      response: response,
+      responseObject: response,
     };
 
-    throw new Error(JSON.stringify(errorDate));
+    throw new Error(JSON.stringify(errorData));
   }
 
   if (contentType.includes("application/json")) {
-    return response.json();
+    return {
+      data: response.json(),
+      responseObject: response,
+    };
   }
 
   if (contentType.includes("application/octet-stream")) {
-    response.arrayBuffer();
+    return {
+      data: response.arrayBuffer(),
+      responseObject: response,
+    };
   }
 
   if (contentType.includes("multipart/form-data")) {
-    return response.formData();
+    return {
+      data: response.formData(),
+      responseObject: response,
+    };
   }
 
   if (contentType.includes("image/")) {
-    return response.blob();
+    return {
+      data: response.blob(),
+      responseObject: response,
+    };
   }
 
   // Default response to text if content type is unknown
-  return response.text();
+  return {
+    data: response.text(),
+    responseObject: response,
+  };
 }
