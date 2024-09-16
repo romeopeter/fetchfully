@@ -6,7 +6,7 @@ export type CustomOptionsType = {
     | "blob"
     | "arrayBuffer"
     | "body";
-  timeout: number;
+  timeout?: number;
 };
 
 export type FetchAPIPropsType = {
