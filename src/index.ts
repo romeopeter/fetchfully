@@ -18,7 +18,7 @@ import GETRequest from "./GET";
  * @returns Promise<any | string>
  */
 export default async function fetcher({
-  URL = "https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits",
+  URL,
   method = "GET",
   body,
   headers,
