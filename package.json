@@ -1,7 +1,7 @@
 {
   "name": "simple-fetcher",
   "version": "1.0.0",
-  "description": "Object-first wrapper for the JavaScript fetch API.",
+  "description": "Object-first wrapper for the JavaScript fetch API. Only specify what you want to do!",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
