@@ -7,6 +7,7 @@ export type CustomOptionsType = {
     | "arrayBuffer"
     | "body";
   timeout?: number;
+  params?: {[name: string]: any}
 };
 
 export type FetchAPIPropsType = {
