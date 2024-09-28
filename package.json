@@ -4,7 +4,8 @@
   "description": "Object-first wrapper for the JavaScript fetch API. Only specify what you want to do!",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build"
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,10 @@
   "bugs": {
     "url": "https://github.com/romeopeter/simple-fetcher/issues"
   },
-  "homepage": "https://github.com/romeopeter/simple-fetcher#readme"
+  "homepage": "https://github.com/romeopeter/simple-fetcher#readme",
+  "devDependencies": {
+    "tslib": "^2.7.0",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
 }
