@@ -4,8 +4,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: "./src/index.ts",
-      name: "FetchWrapper",
-      fileName: (format) => `fetch-wrapper.${format}.js`,
+      name: "SimpleFetch",
+      fileName: (format) => `simple-fetch.${format}.js`,
     },
     rollupOptions: {
       // Ensure that dependencies are not bundled

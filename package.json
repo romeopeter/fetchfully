@@ -1,8 +1,14 @@
 {
-  "name": "simple-fetcher",
+  "name": "simple-fetch",
   "version": "1.0.0",
-  "description": "Object-first wrapper for the JavaScript fetch API. Only specify what you want to do!",
-  "main": "index.js",
+  "description": "Object-first wrapper for the JavaScript fetch API. Only specify what you want it to do!",
+  "main": "./dist/fetch-wrapper.umd.js",
+  "module": "./dist/simple-fetcher.es.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build"
