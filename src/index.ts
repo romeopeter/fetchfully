@@ -1,5 +1,6 @@
 import { FetchAPIPropsType } from "./types";
-import GETRequest from "./GET";
+import requestQuery from "./requestQuery";
+import mutationQuery from "./mutationQuery";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -38,33 +39,33 @@ export default async function fetcher({
     clearTimeout(timeoutID);
   }
 
+  const fetcherOptions: RequestInit = {
+    method,
+    body,
+    headers,
+    credentials,
+    keepalive,
+    mode,
+    signal: abortRequest.signal,
+  };
+
+  // Parse payload for request other than GET
+  if (method !== "GET" && body) fetcherOptions.body = JSON.stringify(body);
+
   try {
-    const response = await fetch(`${URL}`, {
-      method,
-      body,
-      headers,
-      credentials,
-      keepalive,
-      mode,
-      signal: abortRequest.signal,
-    });
+    const response = await fetch(`${URL}`, fetcherOptions);
 
-    if (method !== "GET") {
-      /**
-       * Request other than a GET
-       *
-       * ...
-       */
-    }
+    // Requests other than a GET
+    if (method !== "GET") mutationQuery(response);
 
-    // GET Requests
-    GETRequest(response);
+    // Non-GET requests
+    requestQuery(response);
   } catch (error) {
     console.log(error);
 
     return {
-      error: "HTTP error",
-      reason: error
-    }
+      error: "HTTP ERROR",
+      reason: error,
+    };
   }
 }
