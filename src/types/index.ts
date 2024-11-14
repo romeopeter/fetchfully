@@ -20,3 +20,9 @@ export type FetchAPIPropsType = {
   mode?: "cors" | "same-origin" | "no-cors";
   customOptions: CustomOptionsType;
 };
+
+// Data properties shape return by response to a request
+export type ResponseByContentTypeProps = {
+  data: Promise<any>;
+  responseObject: Response;
+}
