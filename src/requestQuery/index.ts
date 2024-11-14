@@ -1,11 +1,7 @@
-import dataByContentType from "../data-by-content-type";
+import responseByContentType from "../response-by-content-type";
+import { ResponseByContentTypeProps } from "../types";
 
 /* ------------------------------------------------------ */
-
-type DataByContentTypeProps = {
-  data: Promise<any>;
-  responseObject: Response;
-};
 
 /**
  * Handles all non-mutation request (GET) cases.
@@ -16,7 +12,7 @@ type DataByContentTypeProps = {
  */
 export default function requestQuery(
   response: Response
-): DataByContentTypeProps {
+): ResponseByContentTypeProps {
 
   if (!response.ok) {
     const errorData = {
@@ -28,5 +24,5 @@ export default function requestQuery(
     throw new Error(JSON.stringify(errorData));
   }
 
-  return dataByContentType(response);
+  return responseByContentType(response);
 }
