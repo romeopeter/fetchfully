@@ -1,9 +1,7 @@
-import dataByContentType from "../data-by-content-type";
+import responseByContentType from "../response-by-content-type";
+import { ResponseByContentTypeProps } from "../types";
 
-type DataByContentTypeProps = {
-  data: Promise<any>;
-  responseObject: Response;
-};
+/* ------------------------------------------------------------- */
 
 /**
  * Handles all mutation requests (POST, PUT, PATCH, DELETE) cases
@@ -14,7 +12,7 @@ type DataByContentTypeProps = {
  */
 export default function mutationQuery(
   response: Response
-): DataByContentTypeProps | undefined {
+): ResponseByContentTypeProps | undefined {
   // Server error
   if (response.status > 499 || response.status <= 599) {
     const errorData = {
@@ -39,22 +37,23 @@ export default function mutationQuery(
 
   // POST/PUT request
   if (response.status === 200 || response.status === 201) {
-    return dataByContentType(response);
+    return responseByContentType(response);
   }
 
   /**
    * PATCH
    *
-   * For a successful PATCH, common status codes would likely be 200 (OK) or 204 (No Content).
+   * For a successful PATCH, common status codes would likely be: 
+   * - 200 (OK) or 204 (No Content).
    * If the PATCH method was unsuccessful, status codes such as 304 (Not Modified), 400 (Bad Request),
-   * or 422 (Unprocessable Entity) may be seen.
+   * or 422 (Unprocessable Entity) may be seen. This is already handled above!
    */
   if (
     response.status === 200 ||
     response.status === 204 ||
     response.status === 304
   ) {
-    return dataByContentType(response);
+    return responseByContentType(response);
   }
 
   /**
@@ -70,6 +69,6 @@ export default function mutationQuery(
     response.status === 202 ||
     response.status === 204
   ) {
-    return dataByContentType(response);
+    return responseByContentType(response);
   }
 }
