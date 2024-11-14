@@ -8,7 +8,7 @@ import { ResponseByContentTypeProps } from "./types";
  * @param response: Response
  * @returns ResponseByContentTypeProps
  */
-export default function ResponseByContentType(response: Response): ResponseByContentTypeProps {
+export default function responseByContentType(response: Response): ResponseByContentTypeProps {
   const contentType = response.headers.get("Content-Type") as string;
 
   if (contentType.includes("application/json")) {
