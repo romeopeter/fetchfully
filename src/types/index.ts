@@ -23,6 +23,6 @@ export type FetchAPIPropsType = {
 
 // Data properties shape return by response to a request
 export type ResponseByContentTypeProps = {
-  data: Promise<any>;
+  data: any;
   responseObject: Response;
 }
