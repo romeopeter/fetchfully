@@ -1,7 +1,7 @@
 import responseByContentType from "../response-by-content-type";
 import { ResponseByContentTypeProps } from "../types";
 
-/* ------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 
 /**
  * Handles all mutation requests (POST, PUT, PATCH, DELETE) cases
@@ -12,9 +12,9 @@ import { ResponseByContentTypeProps } from "../types";
  */
 export default function mutationQuery(
   response: Response
-): ResponseByContentTypeProps | undefined {
+): Promise<ResponseByContentTypeProps> | undefined {
   // Server error
-  if (response.status > 499 || response.status <= 599) {
+  if (response.status > 499 && response.status <= 599) {
     const errorData = {
       error: "SERVER ERROR",
       status: response.status,
@@ -25,7 +25,7 @@ export default function mutationQuery(
   }
 
   // Client error
-  if (response.status > 399 || response.status <= 499) {
+  if (response.status > 399 && response.status <= 499) {
     const errorData = {
       error: "CLIENT ERROR",
       status: response.status,
@@ -43,7 +43,7 @@ export default function mutationQuery(
   /**
    * PATCH
    *
-   * For a successful PATCH, common status codes would likely be: 
+   * For a successful PATCH, common status codes would likely be:
    * - 200 (OK) or 204 (No Content).
    * If the PATCH method was unsuccessful, status codes such as 304 (Not Modified), 400 (Bad Request),
    * or 422 (Unprocessable Entity) may be seen. This is already handled above!
