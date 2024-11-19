@@ -1,13 +1,15 @@
-import { FetchAPIPropsType } from "./types";
+import { FetchAPIPropsType, FetcherPropsType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
+import { constructUrl } from "./url-parameters";
 
 /* ------------------------------------------------------------------------------------ */
 
 /**
  * Object-first network request API
  *
- * @param URL String
+ * @param url url String -- base URL
+ * @param path path String | String[] -- optional path parameter(s)
  * @param method String
  * @param body string | undefined
  * @param headers {[name: string]: any} | undefined
@@ -19,15 +21,19 @@ import mutationQuery from "./mutationQuery";
  * @returns Promise<any | string>
  */
 export default async function fetcher({
-  URL,
+  url,
+  path,
+  query,
   method = "GET",
   body,
   headers,
   credentials = "same-origin",
   keepalive = false,
   mode = "cors",
-  customOptions,
-}: FetchAPIPropsType): Promise<string | any> {
+  customOptions = { responseBodyType: "json", timeout: 5000 },
+}: FetchAPIPropsType): FetcherPropsType {
+  const fullUrl = constructUrl(url, path, query);
+
   // Abortion object for ongoing request
   const abortRequest = new AbortController();
 
@@ -36,6 +42,7 @@ export default async function fetcher({
       () => abortRequest.abort(),
       customOptions.timeout
     );
+
     clearTimeout(timeoutID);
   }
 
@@ -53,19 +60,19 @@ export default async function fetcher({
   if (method !== "GET" && body) fetcherOptions.body = JSON.stringify(body);
 
   try {
-    const response = await fetch(`${URL}`, fetcherOptions);
+    const response = await fetch(fullUrl, fetcherOptions);
 
     // Requests other than a GET
-    if (method !== "GET") mutationQuery(response);
+    if (method !== "GET") return mutationQuery(response);
 
     // Non-GET requests
-    requestQuery(response);
+    return requestQuery(response);
   } catch (error) {
-    console.log(error);
-
     return {
-      error: "HTTP ERROR",
-      reason: error,
+      error: {
+        error: "HTTP ERROR",
+        reason: error,
+      },
     };
   }
 }
