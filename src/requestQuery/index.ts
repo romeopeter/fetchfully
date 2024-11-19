@@ -12,8 +12,7 @@ import { ResponseByContentTypeProps } from "../types";
  */
 export default function requestQuery(
   response: Response
-): ResponseByContentTypeProps {
-
+): Promise<ResponseByContentTypeProps> {
   if (!response.ok) {
     const errorData = {
       error: "REQUEST ERROR",
