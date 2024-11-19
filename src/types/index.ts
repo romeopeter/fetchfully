@@ -12,6 +12,8 @@ export type CustomOptionsType = {
 
 export type FetchAPIPropsType = {
   url: string;
+  path: string | string[];
+  query: Record<string, any>,
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
   headers?: { [name: string]: string };
   body?: string;
@@ -26,3 +28,15 @@ export type ResponseByContentTypeProps = {
   data: any;
   _responseObject: Response;
 };
+
+// Fetcher type
+export type FetcherPropsType = Promise<
+  | ResponseByContentTypeProps
+  | {
+      error: {
+        error: string;
+        reason: unknown;
+      };
+    }
+  | undefined
+>;
