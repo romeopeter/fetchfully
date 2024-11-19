@@ -1,22 +1,28 @@
 {
-  "name": "simple-fetcher",
+  "name": "simple-fetch",
   "version": "1.0.0",
-  "description": "Object-first wrapper for the JavaScript fetch API. Only specify what you want to do!",
-  "main": "index.js",
+  "description": "Object-first Fetch API wrapper for convenient requests. Only specify what you want!",
+  "main": "./dist/simple-fetch.umd.js",
+  "module": "./dist/simple-fetch.es.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/romeopeter/simple-fetcher.git"
+    "url": "git+https://github.com/romeopeter/simple-fetch.git"
   },
   "author": "Romeo Peter",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/romeopeter/simple-fetcher/issues"
+    "url": "https://github.com/romeopeter/simple-fetch/issues"
   },
-  "homepage": "https://github.com/romeopeter/simple-fetcher#readme",
+  "homepage": "https://github.com/romeopeter/simple-fetch#readme",
   "devDependencies": {
     "tslib": "^2.7.0",
     "typescript": "^5.6.2",

@@ -1,0 +1,8 @@
+src/
+node_modules/
+vite.config.ts
+tsconfig.json
+.vscode/
+dist/*.map
+*.log
+TODO.txt
