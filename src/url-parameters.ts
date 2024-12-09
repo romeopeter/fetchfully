@@ -18,10 +18,7 @@ function constructQueryString(queryParams: Record<string, any>) {
     // Handle objects (convert to JSON string)
     else if (typeof value === "object") {
       searchParams.append(key, JSON.stringify(value));
-    }
-
-    // Handle basic values
-    else {
+    } else {
       searchParams.append(key, String(value));
     }
   }
@@ -34,12 +31,13 @@ function constructQueryString(queryParams: Record<string, any>) {
  *
  * @param baseUrl The base URL
  * @param path Optional path parameter(s)
+ * @param queryParams URL query parameter(s)
  * @returns Constructed URL string
  *
  */
 export function constructUrl(
   baseUrl: string,
-  path: string[] | string,
+  path: string[] | string | undefined,
   queryParams: Record<string, any>
 ) {
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
