@@ -7,15 +7,15 @@ export type CustomOptionsType = {
     | "arrayBuffer"
     | "body";
   timeout?: number;
-  params?: { [name: string]: any };
+  queryParamsArrayFormatter?: "brackets" | "comma" | "repeat" | "none";
 };
 
 export type FetchAPIPropsType = {
-  url: string;
+  baseUrl: string;
   path: string | string[];
-  query: Record<string, any>,
+  queryParams: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
-  headers?: { [name: string]: string };
+  headers?: Record<string, any>;
   body?: string;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
