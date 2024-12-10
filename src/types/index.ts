@@ -10,7 +10,7 @@ export type CustomOptionsType = {
   queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
 };
 
-export type FetchAPIPropsType = {
+export type FetcherType = {
   url: string;
   path?: string | string[];
   query?: Record<string, any>;

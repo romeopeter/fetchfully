@@ -1,4 +1,4 @@
-import { FetchAPIPropsType, FetcherReturnType } from "./types";
+import { FetcherType, FetcherReturnType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
@@ -36,7 +36,7 @@ export default async function fetcher({
     timeout: 5000,
     queryArrayFormat: "comma",
   },
-}: FetchAPIPropsType): FetcherReturnType {
+}: FetcherType): FetcherReturnType {
   const queryOptions = {
     query: query,
     queryArrayFormat: customOptions.queryArrayFormat
