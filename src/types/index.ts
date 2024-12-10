@@ -7,13 +7,13 @@ export type CustomOptionsType = {
     | "arrayBuffer"
     | "body";
   timeout?: number;
-  queryParamsArrayFormatter?: "brackets" | "comma" | "repeat" | "none";
+  queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
 };
 
 export type FetchAPIPropsType = {
-  baseUrl: string;
-  path: string | string[];
-  queryParams: Record<string, any>;
+  url: string;
+  path?: string | string[];
+  query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
   headers?: Record<string, any>;
   body?: string;
@@ -29,8 +29,8 @@ export type ResponseByContentTypeProps = {
   _responseObject: Response;
 };
 
-// Fetcher type
-export type FetcherPropsType = Promise<
+// Fetcher returned data type
+export type FetcherReturnType = Promise<
   | ResponseByContentTypeProps
   | {
       error: {

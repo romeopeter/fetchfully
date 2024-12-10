@@ -1,4 +1,4 @@
-import { FetchAPIPropsType, FetcherPropsType } from "./types";
+import { FetchAPIPropsType, FetcherReturnType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
@@ -22,18 +22,26 @@ import { constructUrl } from "./url-parameters";
  * @returns Promise<any | string>
  */
 export default async function fetcher({
-  baseUrl,
+  url,
   path,
-  queryParams,
+  query,
   method = "GET",
   body,
   headers,
   credentials = "same-origin",
   keepalive = false,
   mode = "cors",
-  customOptions = { responseBodyType: "json", timeout: 5000 },
-}: FetchAPIPropsType): FetcherPropsType {
-  const fullUrl = constructUrl(baseUrl, path, queryParams);
+  customOptions = {
+    responseBodyType: "json",
+    timeout: 5000,
+    queryArrayFormat: "comma",
+  },
+}: FetchAPIPropsType): FetcherReturnType {
+  const queryOptions = {
+    query: query,
+    queryArrayFormat: customOptions.queryArrayFormat
+  }
+  const fullUrl = constructUrl(url, path, queryOptions);
 
   // Abortion object for ongoing request
   const abortRequest = new AbortController();

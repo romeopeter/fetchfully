@@ -1,18 +1,46 @@
+type QueryOptions = {
+  query: Record<string, any> | undefined;
+  queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
+};
+
 /**
  * Constructs query string from an object of query parameters
  * @param queryParams Object containing query parameters
  * @returns Formatted query string
  */
-function constructQueryString(queryParams: Record<string, any>) {
-  if (!queryParams || Object.keys(queryParams).length === 0) return "";
+function constructQueryString(
+  query: Record<string, any>,
+  queryArrayFormat?: "brackets" | "comma" | "repeat" | "none"
+) {
+  if (!query || Object.keys(query).length === 0) return "";
 
   const searchParams = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(queryParams)) {
-    if (value === null || value === undefined) return "";
+  for (const [key, value] of Object.entries(query)) {
+    if (value === null || value === undefined) return;
+
     // Arrays
-    else if (Array.isArray(value)) {
-      value.forEach((item) => searchParams.append(`${key}[]`, String(item)));
+    if (Array.isArray(value)) {
+      switch (queryArrayFormat) {
+        case "brackets":
+          // format: colors[]=red&colors[]=blue
+          value.forEach((item) => searchParams.append(`${key}[]`, String(item)));
+          break;
+
+        case "comma":
+          // format: colors=red,blue
+          searchParams.append(key, value.join(","));
+
+        case "repeat":
+          // format: colors=red&colors=blue
+          value.forEach((item) => searchParams.append(key, String(item)));
+
+        // format: colors=red blue
+        case "none":
+        default:
+          searchParams.append(key, value.join(" "));
+          break;
+      }
     }
 
     // Handle objects (convert to JSON string)
@@ -37,26 +65,31 @@ function constructQueryString(queryParams: Record<string, any>) {
  */
 export function constructUrl(
   baseUrl: string,
-  path: string[] | string | undefined,
-  queryParams: Record<string, any>
+  path?: string[] | string | undefined,
+  queryOptions?: QueryOptions
 ) {
+  //  Remove extra slash from base path.
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 
-  let urlHasPath = cleanBaseUrl;
+  let urlWithPaths = cleanBaseUrl;
 
-  // Array of paths segment
   if (path) {
     const pathSegment = Array.isArray(path)
       ? path
-          .map((segment) => encodeURIComponent(segment.toString().trim()))
-          .join("/")
+        .map((segment) => encodeURIComponent(segment.toString().trim()))
+        .join("/")
       : encodeURIComponent(path.toString().trim());
 
-    urlHasPath = `${cleanBaseUrl}/${pathSegment}`;
+    urlWithPaths = `${cleanBaseUrl}/${pathSegment}`;
   }
 
-  // URL with queries
-  const queryString = constructQueryString(queryParams);
+  if (queryOptions?.query) {
+    const queryString = constructQueryString(
+      queryOptions.query,
+      queryOptions.queryArrayFormat
+    );
+    return urlWithPaths ? `${urlWithPaths}/${queryString}` : cleanBaseUrl;
+  }
 
-  return urlHasPath ? `${urlHasPath}/${queryString}` : cleanBaseUrl;
+  return urlWithPaths ? urlWithPaths : cleanBaseUrl;
 }
