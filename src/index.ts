@@ -1,4 +1,4 @@
-import { FetchAPIPropsType, FetcherPropsType } from "./types";
+import { FetcherType, FetcherReturnType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
@@ -6,17 +6,18 @@ import { constructUrl } from "./url-parameters";
 /* ------------------------------------------------------------------------------------ */
 
 /**
- * Object-first network request API
+ * Object-first network request API.
  *
- * @param url url String -- base URL
- * @param path path String | String[] -- optional path parameter(s)
- * @param method String
- * @param body string | undefined
- * @param headers {[name: string]: any} | undefined
- * @param credentials "same-origin" | "omit" | "include"
- * @param keepalive boolean
- * @param mode "same-origin" | "cors" | "no-cors"
- * @param customOptions: CustomOptionsType
+ * @param baseUrl String -- base URL for all requests
+ * @param path String | String[] -- optional path segment(s)
+ * @param queryParams Record<string, any> -- Query parameters
+ * @param method String -- Request method
+ * @param body string | undefined -- Request payload (optional)
+ * @param headers Record<string, any> | undefined -- HTTP request headers
+ * @param credentials "same-origin" | "omit" | "include" -- Request credentials
+ * @param keepalive boolean -- Keep request open even webpage is closed
+ * @param mode "same-origin" | "cors" | "no-cors" -- header
+ * @param customOptions: CustomOptionsType -- Custom options
  *
  * @returns Promise<any | string>
  */
@@ -30,9 +31,17 @@ export default async function fetcher({
   credentials = "same-origin",
   keepalive = false,
   mode = "cors",
-  customOptions = { responseBodyType: "json", timeout: 5000 },
-}: FetchAPIPropsType): FetcherPropsType {
-  const fullUrl = constructUrl(url, path, query);
+  customOptions = {
+    responseBodyType: "json",
+    timeout: 5000,
+    queryArrayFormat: "comma",
+  },
+}: FetcherType): FetcherReturnType {
+  const queryOptions = {
+    query: query,
+    queryArrayFormat: customOptions.queryArrayFormat
+  }
+  const fullUrl = constructUrl(url, path, queryOptions);
 
   // Abortion object for ongoing request
   const abortRequest = new AbortController();
