@@ -4,7 +4,7 @@
 
 <br />
 
-**Simple Fetch** is an object-first NPM package that simplifies network data fetching. It wraps the JavaScript Fetch API with additional functionalities to make your code more efficient and readable.
+**Simple Fetch** is an object-first promise-based HTTP client for the browser . It wraps the JavaScript Fetch API with additional functionalities for efficiency and readability. Just supply the objects and that's it!
 
 ---
 
@@ -12,7 +12,9 @@
 
 - **Object-First Data Fetching**: Pass data directly as objects, improving code clarity.
 - **In-Built Base Request Logic**: Automatically handles responses based on content type.
-- **Encoded Path and Query Parameters**: Simplifies URL construction by encoding path and query data.
+- **Parses Payload**: Automatically parses mutation request payload as JSON
+- **Simple headers**: Simplifies working with request headers.
+- **Simple Path and Query Parameters**: Automatically constructs and encode URL. Just supply the path and query values.
 - **Customizable Settings**: Set timeouts and parameter delimiters for your specific needs.
 
 ---
@@ -35,9 +37,106 @@ yarn add simple-fetch
 
 ```javascript
 import fetcher from "simple-fetch";
+
+// 1. Original
+await fetcher({ url: "https://api.example.com/posts" });
+
+/** 2. With path strings
+ *
+ *  URL results in: https://api.example.com/posts/1/commments
+ */
+await fetcher({
+  url: "https://api.example.com",
+  path: "/posts1/comments",
+});
+
+/** 3. With array of path segments
+ *
+ * URL results in: https://api.example.com/posts/1/commments
+ */
+await fetcher({
+  url: "https://api.example.com",
+  path: ["posts", "1", "comments"],
+});
+
+/**
+ * 4. With query parameters
+ *
+ * URL results in: https://api.example.com/comments?page=1&limit=10&colors=red,blue&size=large
+ */
+const query = {
+  page: 1,
+  limit: 10,
+  colors: ["red", "blue"],
+  size: "large",
+};
+const queryArrayFormat = "comma";
+await fetch({
+  url: "https://api.example.com",
+  query,
+  customOption: { queryArrayFormat },
+});
 ```
 
 ### Mutation request (POST, PUT, PATCH and DELETE)
+
+```javascript
+/**
+ * 1. POST request
+ *
+ */
+await fetch({
+  url: "https://api.example.com/post",
+  method: "POST",
+  headers: {
+    contentType: "json",
+  },
+  body: {
+    title: "foo",
+    body: "bar",
+    userId: 1,
+  },
+});
+
+/**
+ * 2. PUT request
+ *
+ */
+await fetch({
+  url: "https://api.example.com/post",
+  method: "PUT",
+  headers: {
+    contentType: "json",
+  },
+  body: {
+    id: 1,
+    title: "foo",
+    body: "bar",
+    userId: 1,
+  },
+});
+
+/**
+ * 3. PATCH request
+ *
+ */
+await fetch({
+  url: "https://api.example.com/post/1",
+  method: "PATCH",
+  headers: {
+    contentType: "json",
+  },
+  body: {
+    title: "bar",
+  },
+});
+
+/**
+ * 4. Delete request
+ *
+ */
+await fetch({ url: "https://api.example.com/post/1", method: "DELETE" });
+```
 
 ## Configuration
 
@@ -73,7 +172,7 @@ Example:
 const options = {
     responseType: 'text',
     timeout: 5000, // 5 seconds
-    queryParamsArrayFormatter: "brackets"
+    queryArrayFormat: "brackets"
 }
 
 const fetch await fetcher({
@@ -86,4 +185,4 @@ const fetch await fetcher({
 
 ## License
 
-This project is licensed under the MIT License... I think!
+This project is licensed under the MIT License... for now!
