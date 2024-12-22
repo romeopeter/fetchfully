@@ -24,16 +24,20 @@ function constructQueryString(
       switch (queryArrayFormat) {
         case "brackets":
           // format: colors[]=red&colors[]=blue
-          value.forEach((item) => searchParams.append(`${key}[]`, String(item)));
+          value.forEach((item) =>
+            searchParams.append(`${key}[]`, String(item))
+          );
           break;
 
         case "comma":
           // format: colors=red,blue
           searchParams.append(key, value.join(","));
+          break;
 
         case "repeat":
           // format: colors=red&colors=blue
           value.forEach((item) => searchParams.append(key, String(item)));
+          break;
 
         // format: colors=red blue
         case "none":
@@ -76,8 +80,8 @@ export function constructUrl(
   if (path) {
     const pathSegment = Array.isArray(path)
       ? path
-        .map((segment) => encodeURIComponent(segment.toString().trim()))
-        .join("/")
+          .map((segment) => encodeURIComponent(segment.toString().trim()))
+          .join("/")
       : encodeURIComponent(path.toString().trim());
 
     urlWithPaths = `${cleanBaseUrl}/${pathSegment}`;
