@@ -1,7 +1,7 @@
 {
   "name": "simple-fetcher",
   "version": "1.0.0",
-  "description": "Object-first Fetch API wrapper for convenient requests. Only specify what you want!",
+  "description": "Object-first and promise based Fetch API wrapper for convenient HTTP requests. Only specify what you need!",
   "main": "./dist/simple-fetcher.cjs",
   "module": "./dist/simple-fetcher.mjs",
   "types": "./dist/index.d.ts",
