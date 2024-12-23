@@ -1,14 +1,20 @@
-import { FetcherType, FetcherReturnType } from "./types";
+import { FetcherType, FetcherReturnType, RequestErrorType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
+import {
+  HttpError,
+  TimeoutError,
+  NetworkError,
+  CorsError,
+} from "./custom-request-errors";
 
 /* ------------------------------------------------------------------------------------ */
 
 /**
  * Object-first network request API.
  *
- * @param baseUrl String -- base URL for all requests
+ * @param url String -- base URL for all requests
  * @param path String | String[] -- optional path segment(s)
  * @param queryParams Record<string, any> -- Query parameters
  * @param method String -- Request method
@@ -39,8 +45,8 @@ export default async function fetcher({
 }: FetcherType): FetcherReturnType {
   const queryOptions = {
     query: query,
-    queryArrayFormat: customOptions.queryArrayFormat
-  }
+    queryArrayFormat: customOptions.queryArrayFormat,
+  };
   const fullUrl = constructUrl(url, path, queryOptions);
 
   // Abortion object for ongoing request
@@ -76,12 +82,22 @@ export default async function fetcher({
 
     // Non-GET requests
     return requestQuery(response);
-  } catch (error) {
-    return {
-      error: {
-        error: "HTTP ERROR",
-        reason: error,
-      },
-    };
+  } catch (error: any) {
+    if (error instanceof HttpError) {
+      throw error;
+    } else if (error.name === "AbortError") {
+      throw new TimeoutError("Request timed out");
+    } else if (error instanceof TypeError) {
+      if (
+        error.message.includes("CORS") ||
+        error.message.includes("cross-origin")
+      ) {
+        throw new CorsError("CORS error occurred");
+      } else {
+        throw new NetworkError("Network error occurred");
+      }
+    } else {
+      throw error;
+    }
   }
 }
