@@ -2,13 +2,19 @@ import { FetcherType, FetcherReturnType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
+import {
+  HttpError,
+  TimeoutError,
+  CorsError,
+  NetworkError,
+} from "./custom-request-errors";
 
 /* ------------------------------------------------------------------------------------ */
 
 /**
  * Object-first network request API.
  *
- * @param baseUrl String -- base URL for all requests
+ * @param url String -- base URL for all requests
  * @param path String | String[] -- optional path segment(s)
  * @param queryParams Record<string, any> -- Query parameters
  * @param method String -- Request method
@@ -37,23 +43,14 @@ export default async function fetcher({
     queryArrayFormat: "comma",
   },
 }: FetcherType): FetcherReturnType {
+  const abortRequest = new AbortController(); // Controller object to abort request
+  let timeoutID; // used as ID to cancel timeout object created by setTimeout().
+
   const queryOptions = {
     query: query,
-    queryArrayFormat: customOptions.queryArrayFormat
-  }
+    queryArrayFormat: customOptions.queryArrayFormat,
+  };
   const fullUrl = constructUrl(url, path, queryOptions);
-
-  // Abortion object for ongoing request
-  const abortRequest = new AbortController();
-
-  if (customOptions.timeout) {
-    const timeoutID = setTimeout(
-      () => abortRequest.abort(),
-      customOptions.timeout
-    );
-
-    clearTimeout(timeoutID);
-  }
 
   const fetcherOptions: RequestInit = {
     method,
@@ -69,19 +66,33 @@ export default async function fetcher({
   if (method !== "GET" && body) fetcherOptions.body = JSON.stringify(body);
 
   try {
+    if (customOptions.timeout) {
+      timeoutID = setTimeout(() => abortRequest.abort(), customOptions.timeout);
+    }
     const response = await fetch(fullUrl, fetcherOptions);
 
     // Requests other than a GET
     if (method !== "GET") return mutationQuery(response);
 
-    // Non-GET requests
+    // GET requests
     return requestQuery(response);
-  } catch (error) {
-    return {
-      error: {
-        error: "HTTP ERROR",
-        reason: error,
-      },
-    };
+  } catch (error: any) {
+    if (error instanceof TypeError) {
+      if (
+        error.message.includes("CORS") ||
+        error.message.includes("cross-origin")
+      ) {
+        throw new CorsError("CORS error occurred");
+      }
+      throw new NetworkError("Network error occurred");
+    } else if (error.name === "AbortError") {
+      throw new TimeoutError("Request timed out");
+    } else if (error instanceof HttpError) {
+      throw error;
+    } else {
+      throw error;
+    }
+  } finally {
+    if (timeoutID) clearTimeout(timeoutID);
   }
 }

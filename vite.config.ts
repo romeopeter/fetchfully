@@ -1,11 +1,13 @@
 import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
   build: {
     lib: {
       entry: "./src/index.ts",
-      name: "SimpleFetch",
-      fileName: (format) => `simple-fetch.${format}.js`,
+      name: "simple-fetcher",
+      formats: ["es", "umd"],
+      fileName: (format) => `simple-fetcher.${format === "es" ? "mjs" : "cjs"}`,
     },
     rollupOptions: {
       // Ensure that dependencies are not bundled
@@ -17,4 +19,5 @@ export default defineConfig({
       },
     },
   },
+  plugins: [dts({ rollupTypes: true })],
 });

@@ -1,10 +1,18 @@
 {
-  "name": "simple-fetch",
+  "name": "simple-fetcher",
   "version": "1.0.0",
-  "description": "Object-first Fetch API wrapper for convenient requests. Only specify what you want!",
-  "main": "./dist/simple-fetch.umd.js",
-  "module": "./dist/simple-fetch.es.js",
+  "description": "Object-first and promise based Fetch API wrapper for convenient HTTP requests. Only specify what you need!",
+  "main": "./dist/simple-fetcher.cjs",
+  "module": "./dist/simple-fetcher.mjs",
   "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/simple-fetcher.mjs",
+      "require": "./dist/simple-fetcher.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "README.md"
@@ -15,17 +23,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/romeopeter/simple-fetch.git"
+    "url": "git+https://github.com/romeopeter/simple-fetcher.git"
   },
-  "author": "Romeo Peter",
+  "author": "Romeo Agbor Peter",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/romeopeter/simple-fetch/issues"
+    "url": "https://github.com/romeopeter/simple-fetcher/issues"
   },
-  "homepage": "https://github.com/romeopeter/simple-fetch#readme",
+  "homepage": "https://github.com/romeopeter/simple-fetcher#readme",
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "tslib": "^2.7.0",
     "typescript": "^5.6.2",
-    "vite": "^5.4.8"
+    "vite": "^5.4.8",
+    "vite-plugin-dts": "^4.4.0"
   }
 }
