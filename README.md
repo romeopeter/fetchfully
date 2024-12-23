@@ -1,10 +1,10 @@
-# Simple Fetch
+# Simple Fetcher
 
-<img src="./SimpleFetch.png" style="max-width:300px;display:block" />
+<!-- <img src="./SimpleFetch.png" style="max-width:300px;display:block" /> -->
 
 <br />
 
-**Simple Fetch** is an object-first promise-based HTTP client for the browser . It wraps the JavaScript Fetch API with additional functionalities for efficiency and readability. Just supply the objects and that's it!
+**Simple Fetcher** is an object-first promise-based HTTP client for the browser . It wraps the JavaScript Fetch API with additional functionalities for efficiency and readability. Just supply the objects and that's it!
 
 ---
 
