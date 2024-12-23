@@ -1,5 +1,6 @@
 import responseByContentType from "../response-by-content-type";
 import { ResponseByContentTypeProps } from "../types";
+import { HttpError } from "../custom-request-errors";
 
 /* ---------------------------------------------------------------------- */
 
@@ -15,27 +16,37 @@ export default function mutationQuery(
 ): Promise<ResponseByContentTypeProps> | undefined {
   // Server error
   if (response.status > 499 && response.status <= 599) {
+    /*
     const errorData = {
       error: "SERVER ERROR",
       status: response.status,
       responseObject: response,
     };
 
-    throw new Error(JSON.stringify(errorData));
+    throw new Error(JSON.stringify(errorData)); */
+
+    throw new HttpError(response.status, response.statusText);
   }
 
   // Client error
   if (response.status > 399 && response.status <= 499) {
-    const errorData = {
+    /*const errorData = {
       error: "CLIENT ERROR",
       status: response.status,
       responseObject: response,
     };
 
-    throw new Error(JSON.stringify(errorData));
+    throw new Error(JSON.stringify(errorData));*/
+
+    throw new HttpError(response.status, response.statusText);
   }
 
-  // POST/PUT request
+  /**
+   * POST/PUT
+   * 
+   * - 200 (OK) or 201 (created).
+   * 
+  */
   if (response.status === 200 || response.status === 201) {
     return responseByContentType(response);
   }
