@@ -1,3 +1,11 @@
+import {
+  NetworkError,
+  HttpError,
+  CorsError,
+  TimeoutError,
+} from "../custom-request-errors";
+/* ------------------------------------------------ */
+
 export type CustomOptionsType = {
   responseBodyType:
     | "text"
@@ -40,3 +48,10 @@ export type FetcherReturnType = Promise<
     }
   | undefined
 >;
+
+// Request error object shape
+export type RequestErrorType =
+  | NetworkError
+  | HttpError
+  | CorsError
+  | TimeoutError;
