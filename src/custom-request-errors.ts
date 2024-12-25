@@ -15,7 +15,9 @@ export class NetworkError extends Error {
 }
 
 export class HttpError extends Error {
+  //@ts-ignore
   private status: string | number;
+  //@ts-ignore
   private statusText: string;
 
   constructor(status: number | string, statusText: string) {
