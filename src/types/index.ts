@@ -7,15 +7,21 @@ import {
 /* ------------------------------------------------ */
 
 export type CustomOptionsType = {
-  responseBodyType:
-    | "text"
-    | "json"
-    | "formData"
-    | "blob"
-    | "arrayBuffer"
-    | "body";
   timeout?: number;
   queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
+};
+
+// Request headers type
+export type RequestHeadersType = {
+  authorization?: string;
+  contentType?:
+    | "application/json"
+    | "application/x-www-form-urlencoded"
+    | "multipart/form-data"
+    | "text/html"
+    | "text/plain";
+  cacheControl?: "no-cache" | "no-store" | "must-revalidate";
+  [name: string]: any;
 };
 
 export type FetcherType = {
@@ -23,7 +29,7 @@ export type FetcherType = {
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
-  headers?: Record<string, any>;
+  headers?: RequestHeadersType;
   body?: string;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
