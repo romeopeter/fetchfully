@@ -2,6 +2,7 @@ import { FetcherType, FetcherReturnType } from "./types";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
 import { constructUrl } from "./url-parameters";
+import { formattedRequestHeaders } from "./request-headers-formatter";
 import {
   HttpError,
   TimeoutError,
@@ -9,21 +10,21 @@ import {
   NetworkError,
 } from "./custom-request-errors";
 
-/* ------------------------------------------------------------------------------------ */
+/* ---------------------------------------------------------------------------------- */
 
 /**
  * Object-first network request API.
- *
- * @param url String -- base URL for all requests
- * @param path String | String[] -- optional path segment(s)
- * @param queryParams Record<string, any> -- Query parameters
- * @param method String -- Request method
- * @param body string | undefined -- Request payload (optional)
- * @param headers Record<string, any> | undefined -- HTTP request headers
- * @param credentials "same-origin" | "omit" | "include" -- Request credentials
- * @param keepalive boolean -- Keep request open even webpage is closed
+ * 
+ * @param url String: base URL for all requests
+ * @param path String | String[] : optional path segment(s)
+ * @param queryParams Record<string, any> : Query parameters
+ * @param method String : Request method
+ * @param body string | undefined : Request payload (optional)
+ * @param headers Record<string, any> | undefined : HTTP request headers
+ * @param credentials "same-origin" | "omit" | "include" : Request credentials
+ * @param keepalive boolean : Keep request open even webpage is closed
  * @param mode "same-origin" | "cors" | "no-cors" -- header
- * @param customOptions: CustomOptionsType -- Custom options
+ * @param customOptions CustomOptionsType : Custom options
  *
  * @returns Promise<any | string>
  */
@@ -38,7 +39,6 @@ export default async function fetcher({
   keepalive = false,
   mode = "cors",
   customOptions = {
-    responseBodyType: "json",
     timeout: 5000,
     queryArrayFormat: "comma",
   },
@@ -55,7 +55,7 @@ export default async function fetcher({
   const fetcherOptions: RequestInit = {
     method,
     body,
-    headers,
+    headers: formattedRequestHeaders(headers),
     credentials,
     keepalive,
     mode,
