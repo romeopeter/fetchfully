@@ -1,10 +1,10 @@
-# Simple Fetcher
+# Fetchfully
 
 <!-- <img src="./SimpleFetch.png" style="max-width:300px;display:block" /> -->
 
 <br />
 
-**Simple Fetcher** is an object-first promise-based HTTP client for the browser . It wraps the JavaScript Fetch API with additional functionalities for efficiency and readability. Just supply the objects and that's it!
+**Fetchfully** is an object-first and promise-based HTTP client for the browser . It wraps the JavaScript Fetch API with additional functionalities for efficiency and readability. Just supply the objects and that's it!
 
 ---
 
@@ -24,11 +24,11 @@
 Install the package using npm or yarn:
 
 ```bash
-npm install simple-fetch
+npm install fetch-plus
 
 # or
 
-yarn add simple-fetch
+yarn add fetch-plus
 ```
 
 ## How To Use
@@ -36,7 +36,7 @@ yarn add simple-fetch
 ### Basic request
 
 ```javascript
-import fetcher from "simple-fetch";
+import fetcher from "fetch-plus";
 
 // 1. Original
 await fetcher({ url: "https://api.example.com/posts" });
@@ -71,7 +71,7 @@ const query = {
   size: "large",
 };
 const queryArrayFormat = "comma";
-await fetch({
+await fetcher({
   url: "https://api.example.com",
   query,
   customOption: { queryArrayFormat },
@@ -85,7 +85,7 @@ await fetch({
  * 1. POST request
  *
  */
-await fetch({
+await fetcher({
   url: "https://api.example.com/post",
   method: "POST",
   headers: {
@@ -102,7 +102,7 @@ await fetch({
  * 2. PUT request
  *
  */
-await fetch({
+await fetcher({
   url: "https://api.example.com/post",
   method: "PUT",
   headers: {
@@ -120,7 +120,7 @@ await fetch({
  * 3. PATCH request
  *
  */
-await fetch({
+await fetcher({
   url: "https://api.example.com/post/1",
   method: "PATCH",
   headers: {
@@ -135,12 +135,12 @@ await fetch({
  * 4. Delete request
  *
  */
-await fetch({ url: "https://api.example.com/post/1", method: "DELETE" });
+await fetcher({ url: "https://api.example.com/post/1", method: "DELETE" });
 ```
 
 ## Configuration
 
-When initializing `SimpleFetch`, you can pass the following options:
+When initializing `Fetchfully`, you can pass the following options:
 
 ### Base options
 
@@ -185,4 +185,4 @@ const fetch await fetcher({
 
 ## License
 
-This project is licensed under the MIT License... for now!
+This project is licensed under the MIT License.
