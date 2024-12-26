@@ -1,15 +1,15 @@
 {
-  "name": "simple-fetcher",
+  "name": "fetchfully",
   "version": "1.0.0",
   "description": "Object-first and promise based Fetch API wrapper for convenient HTTP requests. Only specify what you need!",
-  "main": "./dist/simple-fetcher.cjs",
-  "module": "./dist/simple-fetcher.mjs",
+  "main": "./dist/fetchfully.cjs",
+  "module": "./dist/fetchfully.mjs",
   "types": "./dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/simple-fetcher.mjs",
-      "require": "./dist/simple-fetcher.cjs",
+      "import": "./dist/fetchfully.mjs",
+      "require": "./dist/fetchfully.cjs",
       "types": "./dist/index.d.ts"
     }
   },
@@ -23,14 +23,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/romeopeter/simple-fetcher.git"
+    "url": "git+https://github.com/romeopeter/fetchfully.git"
   },
   "author": "Romeo Agbor Peter",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/romeopeter/simple-fetcher/issues"
+    "url": "https://github.com/romeopeter/fetchfully/issues"
   },
-  "homepage": "https://github.com/romeopeter/simple-fetcher#readme",
+  "homepage": "https://github.com/romeopeter/fetchfully#readme",
   "devDependencies": {
     "@types/node": "^22.10.2",
     "tslib": "^2.7.0",
