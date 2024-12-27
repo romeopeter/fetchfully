@@ -1,7 +1,7 @@
 import { FetchfullyConfig } from "../types/config";
 
 /**
- * Merges core config with Instance-specific config
+ * Default and Instance-specific configuration merging function
  *
  * @param defaultConfig FetchfullyConfig
  * @param instanceConfig FetchfullyConfig
@@ -14,7 +14,7 @@ export function mergeConfig(
 ) {
   const config: FetchfullyConfig = {};
 
-  // Merge default and instance headers
+  // Merge headers
   config.headers = {
     ...defaultConfig.headers,
     ...instanceConfig.headers,
