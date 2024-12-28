@@ -1,0 +1,101 @@
+import { FetchfullyConfig } from "./types/config";
+import { mergeConfig } from "./utils/mergeConfig";
+import requestQuery from "./requestQuery";
+import mutationQuery from "./mutationQuery";
+// import { formattedRequestHeaders } from "./utils/request-headers-formatter";
+import { constructUrl } from "./utils/url-parameters";
+import {
+  NetworkError,
+  CorsError,
+  TimeoutError,
+  HttpError,
+} from "./utils/custom-request-errors";
+
+/* -------------------------------------------------------- */
+
+/**
+ * Creates and instance of the core fetcher function
+ *
+ * @param defaultConfig FetchfullyConfig
+ * 
+ */
+export function createFetcher(defaultConfig: FetchfullyConfig = {}) {
+  async function fetcher(requestConfig: FetchfullyConfig) {
+    const mergedConfig = mergeConfig(defaultConfig, requestConfig);
+    const abortRequest = new AbortController(); // Controller object to abort request
+    let timeoutID; // used as ID to cancel timeout object created by setTimeout().
+
+    const requestQueryParameter = {
+      query: mergedConfig.query,
+      queryArrayFormat: mergedConfig.customOptions?.queryArrayFormat,
+    };
+
+    const fetcherOptions: RequestInit = {
+      method: mergedConfig.method,
+      body: mergedConfig.body,
+      headers: mergedConfig.headers,
+      credentials: mergedConfig.credentials,
+      keepalive: mergedConfig.keepalive,
+      mode: mergedConfig.mode,
+      signal: abortRequest.signal,
+    };
+
+    if (mergedConfig.method !== "GET") {
+      fetcherOptions.body = JSON.stringify(mergedConfig.body);
+    }
+
+    try {
+      if (mergedConfig.customOptions?.timeout) {
+        timeoutID = setTimeout(
+          () => abortRequest.abort(),
+          mergedConfig.customOptions?.timeout
+        );
+      }
+
+      let fullUrl = constructUrl(
+        mergedConfig.url || "",
+        mergedConfig.path,
+        requestQueryParameter
+      );
+
+      //  Check for base URL, remove extra slash and then append sub url it
+      if (mergedConfig.baseUrl) {
+        fullUrl = constructUrl(
+          `${mergedConfig.baseUrl.replace(/\/+$/, "")}/${mergedConfig.url}`,
+          mergedConfig.path,
+          requestQueryParameter
+        );
+      }
+
+      const response = await fetch(fullUrl, fetcherOptions);
+
+      // Mutation request
+      if (mergedConfig.method !== "GET") return mutationQuery(response);
+
+      // Normal request
+      return requestQuery(response);
+    } catch (error: any) {
+      if (error instanceof TypeError) {
+        if (
+          error.message.includes("CORS") ||
+          error.message.includes("cross-origin")
+        ) {
+          throw new CorsError("CORS error occurred");
+        }
+        throw new NetworkError("Network error occurred");
+      } else if (error.name === "AbortError") {
+        throw new TimeoutError("Request timed out");
+      } else if (error instanceof HttpError) {
+        throw error;
+      } else {
+        throw error;
+      }
+    } finally {
+      clearTimeout(timeoutID);
+    }
+  }
+
+  fetcher.defaults = defaultConfig;
+
+  return fetcher;
+}
