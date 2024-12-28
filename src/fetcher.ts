@@ -1,4 +1,3 @@
-import { FetchfullyConfig } from "./types/config";
 import { mergeConfig } from "./utils/mergeConfig";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
@@ -10,6 +9,7 @@ import {
   TimeoutError,
   HttpError,
 } from "./utils/custom-request-errors";
+import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
 
 /* -------------------------------------------------------- */
 
@@ -17,9 +17,11 @@ import {
  * Creates and instance of the core fetcher function
  *
  * @param defaultConfig FetchfullyConfig
- * 
+ *
  */
-export function createFetcher(defaultConfig: FetchfullyConfig = {}) {
+export function createFetcher(
+  defaultConfig: FetchfullyConfig = {}
+): Omit<FetchfullyInstance, "create"> {
   async function fetcher(requestConfig: FetchfullyConfig) {
     const mergedConfig = mergeConfig(defaultConfig, requestConfig);
     const abortRequest = new AbortController(); // Controller object to abort request
