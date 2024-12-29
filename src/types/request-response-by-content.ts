@@ -1,5 +1,5 @@
 // Request's response data structure returned
-export type ResponseByContentTypeProps = {
+export type ResponseByContentType = {
     data: any;
     _responseObject: Response;
   };
