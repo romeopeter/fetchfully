@@ -8,8 +8,6 @@ export const defaults: FetchfullyConfig = {
   credentials: "same-origin",
   keepalive: false,
   mode: "cors",
-  customOptions: {
-    queryArrayFormat: "none",
-    timeout: 0,
-  }
+  queryArrayFormat: "comma",
+  timeout: 0,
 };
