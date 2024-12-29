@@ -1,6 +1,6 @@
 type QueryOptions = {
-  query: Record<string, any> | undefined;
-  queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
+  query?: Record<string, any>;
+  queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
 };
 
 /**
@@ -59,21 +59,21 @@ function constructQueryString(
 }
 
 /**
- * Constructs full URL by combining base URL with path parameters
+ * Constructs full URL by combining supplied  with path parameters
  *
- * @param baseUrl The base URL
+ * @param baseUrl The url
  * @param path Optional path parameter(s)
  * @param queryParams URL query parameter(s)
  * @returns Constructed URL string
  *
  */
 export function constructUrl(
-  baseUrl: string,
+  url: string,
   path?: string[] | string | undefined,
   queryOptions?: QueryOptions
 ) {
   //  Remove extra slash from base path.
-  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanBaseUrl = url.endsWith("/") ? url.slice(0, -1) : url;
 
   let urlWithPaths = cleanBaseUrl;
 
