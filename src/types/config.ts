@@ -10,10 +10,8 @@ export type FetchfullyConfig = {
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
-  customOptions?: {
-    timeout?: number;
-    queryArrayFormat: "brackets" | "comma" | "repeat" | "none";
-  };
+  timeout?: number;
+  queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
 };
 
 // Fetchfully instance structure
