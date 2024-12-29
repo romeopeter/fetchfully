@@ -29,7 +29,7 @@ export function createFetcher(
 
     const requestQueryParameter = {
       query: mergedConfig.query,
-      queryArrayFormat: mergedConfig.customOptions?.queryArrayFormat,
+      queryArrayFormat: mergedConfig.queryArrayFormat,
     };
 
     const fetcherOptions: RequestInit = {
@@ -47,10 +47,10 @@ export function createFetcher(
     }
 
     try {
-      if (mergedConfig.customOptions?.timeout) {
+      if (mergedConfig.timeout) {
         timeoutID = setTimeout(
           () => abortRequest.abort(),
-          mergedConfig.customOptions?.timeout
+          mergedConfig.timeout
         );
       }
 
