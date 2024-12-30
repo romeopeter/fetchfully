@@ -1,7 +1,8 @@
 import { FetchfullyConfig } from "../types/config";
 
 /**
- * Default and Instance-specific configuration merging function
+ * Merges instance-specific config to default config.
+ * Preserve all default config unless overridden by instance-specific config
  *
  * @param defaultConfig FetchfullyConfig
  * @param instanceConfig FetchfullyConfig
@@ -14,15 +15,16 @@ export function mergeConfig(
 ) {
   const config: FetchfullyConfig = {};
 
-  // Merge headers
-  config.headers = {
-    ...defaultConfig.headers,
-    ...instanceConfig.headers,
-  };
-
-  //   Merge other properties. Instance properties take precedence
-  Object.keys(instanceConfig).forEach((key) => {
-    if (key !== "headers") {
+  Object.keys(defaultConfig).forEach((key) => {
+    if (
+      defaultConfig[key as keyof FetchfullyConfig] instanceof Object &&
+      !Array.isArray(key as keyof FetchfullyConfig)
+    ) {
+      config[key as keyof FetchfullyConfig] = mergeConfig(
+        defaultConfig[key as keyof FetchfullyConfig] || {},
+        instanceConfig[key as keyof FetchfullyConfig]
+      );
+    } else {
       config[key as keyof FetchfullyConfig] =
         instanceConfig[key as keyof FetchfullyConfig];
     }
