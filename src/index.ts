@@ -8,7 +8,7 @@ import { mergeConfig } from "./utils/mergeConfig";
 const defaultFetchfullyInstance = createFetcher(defaults) as FetchfullyInstance;
 
 // Factory method to produce a new fetcher instance
-defaultFetchfullyInstance.create = (config?: FetchfullyConfig) => {
+defaultFetchfullyInstance.createFetcher = (config?: FetchfullyConfig) => {
   const instanceConfig = mergeConfig(defaults, config || {});
 
   return createFetcher(instanceConfig) as FetchfullyInstance;
