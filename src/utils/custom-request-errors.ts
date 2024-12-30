@@ -16,13 +16,16 @@ export class NetworkError extends Error {
 
 export class HttpError extends Error {
   //@ts-ignore
+  private URL: string
+  //@ts-ignore
   private status: string | number;
   //@ts-ignore
   private statusText: string;
 
-  constructor(status: number | string, statusText: string) {
+  constructor(status: number | string, statusText: string, url: string) {
     super(`HTTP Error! Status: ${status} - ${statusText}`);
     this.name = "HttpError";
+    this.URL = url
     this.status = status;
     this.statusText = statusText;
 
