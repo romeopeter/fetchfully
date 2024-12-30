@@ -21,7 +21,7 @@ import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
  */
 export function createFetcher(
   defaultConfig: FetchfullyConfig = {}
-): Omit<FetchfullyInstance, "create"> {
+): Omit<FetchfullyInstance, "createFetcher"> {
   async function fetcher(requestConfig: FetchfullyConfig) {
     const mergedConfig = mergeConfig(defaultConfig, requestConfig);
     const abortRequest = new AbortController(); // Controller object to abort request
@@ -61,9 +61,9 @@ export function createFetcher(
       );
 
       //  Check for base URL, remove extra slash and then append sub url it
-      if (mergedConfig.baseUrl) {
+      if (mergedConfig.baseURL) {
         fullUrl = constructUrl(
-          `${mergedConfig.baseUrl.replace(/\/+$/, "")}/${mergedConfig.url}`,
+          `${mergedConfig.baseURL.replace(/\/+$/, "")}`,
           mergedConfig.path,
           requestQueryParameter
         );
