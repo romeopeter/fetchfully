@@ -1,12 +1,25 @@
+// Common request headers type
+export type CommonRequestHeaders = {
+  authorization?: string;
+  contentType?:
+    | "application/json"
+    | "application/x-www-form-urlencoded"
+    | "multipart/form-data"
+    | "text/html"
+    | "text/plain";
+  cacheControl?: "no-cache" | "no-store" | "must-revalidate";
+  [name: string]: any;
+};
+
 // Fetchfully core configuration
 export type FetchfullyConfig = {
-  baseUrl?: string;
+  baseURL?: string;
   url?: string;
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: any;
-  headers?: { [name: string]: any };
+  headers?: CommonRequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
@@ -18,5 +31,5 @@ export type FetchfullyConfig = {
 export type FetchfullyInstance = {
   (config: FetchfullyConfig): Promise<any>;
   defaults: FetchfullyConfig;
-  create: (config?: FetchfullyConfig) => FetchfullyInstance;
+  createFetcher: (config?: FetchfullyConfig) => FetchfullyInstance;
 };
