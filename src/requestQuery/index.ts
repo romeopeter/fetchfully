@@ -15,7 +15,7 @@ export default function requestQuery(
   response: Response
 ): Promise<ResponseByContentType> {
   if (!response.ok) {
-    throw new HttpError(response.status, response.statusText);
+    throw new HttpError(response.status, response.statusText, response.url);
   }
 
   return responseByContentType(response);

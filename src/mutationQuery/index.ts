@@ -16,12 +16,12 @@ export default function mutationQuery(
 ): Promise<ResponseByContentType> | undefined {
   // Server error
   if (response.status > 499 && response.status <= 599) {
-    throw new HttpError(response.status, response.statusText);
+    throw new HttpError(response.status, response.statusText, response.url);
   }
 
   // Client error
   if (response.status > 399 && response.status <= 499) {
-    throw new HttpError(response.status, response.statusText);
+    throw new HttpError(response.status, response.statusText, response.url);
   }
 
   /**
