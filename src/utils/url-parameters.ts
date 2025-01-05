@@ -80,9 +80,9 @@ export function constructUrl(
   if (path) {
     const pathSegment = Array.isArray(path)
       ? path
-          .map((segment) => encodeURIComponent(segment.toString().trim()))
+          .map((segment) => segment.toString().trim())
           .join("/")
-      : encodeURIComponent(path.toString().trim());
+      : path.toString().trim();
 
     urlWithPaths = `${cleanBaseUrl}/${pathSegment}`;
   }
