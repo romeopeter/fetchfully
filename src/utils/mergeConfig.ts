@@ -4,31 +4,40 @@ import { FetchfullyConfig } from "../types/config";
  * Merges instance-specific config to default config.
  * Preserve all default config unless overridden by instance-specific config
  *
- * @param defaultConfig FetchfullyConfig
- * @param instanceConfig FetchfullyConfig
+ * @param defaultConfig Generic type of T
+ * @param instanceConfig Generic type of T
  *
- * @returns FetchfullyConfig
+ * @returns Generic type of T
  */
 export function mergeConfig(
   defaultConfig: FetchfullyConfig,
-  instanceConfig: FetchfullyConfig
-) {
-  const config: FetchfullyConfig = {};
+  instanceConfig: Partial<FetchfullyConfig>
+): FetchfullyConfig {
+  const isObject = (obj: any): obj is Record<string, any> =>
+    obj instanceof Object && !Array.isArray(obj);
 
-  Object.keys(defaultConfig).forEach((key) => {
-    if (
-      defaultConfig[key as keyof FetchfullyConfig] instanceof Object &&
-      !Array.isArray(key as keyof FetchfullyConfig)
-    ) {
-      config[key as keyof FetchfullyConfig] = mergeConfig(
-        defaultConfig[key as keyof FetchfullyConfig] || {},
-        instanceConfig[key as keyof FetchfullyConfig]
-      );
-    } else {
-      config[key as keyof FetchfullyConfig] =
-        instanceConfig[key as keyof FetchfullyConfig];
+  const merge = (
+    target: FetchfullyConfig,
+    source: Partial<FetchfullyConfig>
+  ): FetchfullyConfig => {
+    for (const key in source) {
+      if (
+        isObject(source[key as keyof Partial<FetchfullyConfig>]) &&
+        isObject(target[key as keyof FetchfullyConfig])
+      ) {
+        // Recursively merge nested objects
+        target[key as keyof FetchfullyConfig] = merge(
+          { ...target[key as keyof FetchfullyConfig] },
+          source[key as keyof Partial<FetchfullyConfig>]
+        );
+      } else {
+        // Override or add property
+        target[key as keyof FetchfullyConfig] =
+          source[key as keyof Partial<FetchfullyConfig>];
+      }
     }
-  });
+    return target;
+  };
 
-  return config;
+  return merge({ ...defaultConfig }, instanceConfig);
 }
