@@ -1,13 +1,15 @@
 // Common request headers type
-export type CommonRequestHeaders = {
-  authorization?: string;
-  contentType?:
-    | "application/json"
-    | "application/x-www-form-urlencoded"
-    | "multipart/form-data"
-    | "text/html"
-    | "text/plain";
-  cacheControl?: "no-cache" | "no-store" | "must-revalidate";
+export type RequestHeaders = {
+  common: {
+    Authorization?: string;
+    "Content-Type"?:
+      | "application/json"
+      | "application/x-www-form-urlencoded"
+      | "multipart/form-data"
+      | "text/html"
+      | "text/plain";
+    "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
+  };
   [name: string]: any;
 };
 
@@ -17,9 +19,19 @@ export type FetchfullyConfig = {
   url?: string;
   path?: string | string[];
   query?: Record<string, any>;
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: any;
-  headers?: CommonRequestHeaders;
+  headers?: {
+    "Authorization"?: string;
+    "Content-Type"?:
+      | "application/json"
+      | "application/x-www-form-urlencoded"
+      | "multipart/form-data"
+      | "text/html"
+      | "text/plain";
+    "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
+    [name: string]: any;
+  };
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
