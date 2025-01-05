@@ -1,7 +1,6 @@
 import { mergeConfig } from "./utils/mergeConfig";
 import requestQuery from "./requestQuery";
 import mutationQuery from "./mutationQuery";
-// import { formattedRequestHeaders } from "./utils/request-headers-formatter";
 import { constructUrl } from "./utils/url-parameters";
 import {
   NetworkError,
@@ -83,8 +82,11 @@ export function createFetcher(
           error.message.includes("cross-origin")
         ) {
           throw new CorsError("CORS error occurred");
+        } else if (error.message.includes("fetch failed")) {
+          throw new NetworkError("Network error occurred");
+        } else {
+          throw error;
         }
-        throw new NetworkError("Network error occurred");
       } else if (error.name === "AbortError") {
         throw new TimeoutError("Request timed out");
       } else if (error instanceof HttpError) {
