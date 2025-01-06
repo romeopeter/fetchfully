@@ -8,6 +8,7 @@ import {
   TimeoutError,
   HttpError,
 } from "./utils/custom-request-errors";
+import { attachMethods } from "./consumable-methods";
 import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
 
 /* -------------------------------------------------------- */
@@ -20,7 +21,7 @@ import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
  */
 export function createFetcher(
   defaultConfig: FetchfullyConfig = {}
-): Omit<FetchfullyInstance, "createFetcher"> {
+): Omit<FetchfullyInstance, "create"> {
   async function fetcher(requestConfig: FetchfullyConfig) {
     const mergedConfig = mergeConfig(defaultConfig, requestConfig);
     const abortRequest = new AbortController(); // Controller object to abort request
@@ -101,5 +102,5 @@ export function createFetcher(
 
   fetcher.defaults = defaultConfig;
 
-  return fetcher;
+  return attachMethods(fetcher as FetchfullyInstance);
 }
