@@ -1,15 +1,17 @@
+import { RequestMethods } from "./consumable-methods";
+
+/* ---------------------------------------------------- */
+
 // Common request headers type
 export type RequestHeaders = {
-  common: {
-    Authorization?: string;
-    "Content-Type"?:
-      | "application/json"
-      | "application/x-www-form-urlencoded"
-      | "multipart/form-data"
-      | "text/html"
-      | "text/plain";
-    "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
-  };
+  "Authorization"?: string;
+  "Content-Type"?:
+    | "application/json"
+    | "application/x-www-form-urlencoded"
+    | "multipart/form-data"
+    | "text/html"
+    | "text/plain";
+  "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
   [name: string]: any;
 };
 
@@ -21,17 +23,7 @@ export type FetchfullyConfig = {
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: any;
-  headers?: {
-    "Authorization"?: string;
-    "Content-Type"?:
-      | "application/json"
-      | "application/x-www-form-urlencoded"
-      | "multipart/form-data"
-      | "text/html"
-      | "text/plain";
-    "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
-    [name: string]: any;
-  };
+  headers?: RequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
@@ -40,8 +32,8 @@ export type FetchfullyConfig = {
 };
 
 // Fetchfully instance structure
-export type FetchfullyInstance = {
+export interface FetchfullyInstance extends RequestMethods {
   (config: FetchfullyConfig): Promise<any>;
   defaults: FetchfullyConfig;
-  createFetcher: (config?: FetchfullyConfig) => FetchfullyInstance;
-};
+  create: (config?: FetchfullyConfig) => FetchfullyInstance;
+}
