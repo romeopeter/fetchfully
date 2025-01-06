@@ -8,7 +8,7 @@
  * @param camelCaseHeaders Record<string, any>: Object of camelCase request headers
  * @returns Record<string, any>: Object of camelCase request headers
  */
-export function formattedRequestHeaders(camelCaseHeaders: Record<string, any> | undefined) {
+export function requestHeadersFormatter(camelCaseHeaders: Record<string, any> | undefined) {
   if (camelCaseHeaders === undefined) return
 
   const formattedHeaders: Record<string, any> = {};

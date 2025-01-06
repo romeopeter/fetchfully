@@ -1,6 +1,6 @@
-import responseByContentType from "../response-by-content-type";
-import { ResponseByContentTypeProps } from "../types";
-import { HttpError } from "../custom-request-errors";
+import responseByContentType from "../utils/response-by-content-type";
+import { ResponseByContentType } from "../types/request-response-by-content";
+import { HttpError } from "../utils/custom-request-errors";
 
 /* ------------------------------------------------------ */
 
@@ -13,17 +13,9 @@ import { HttpError } from "../custom-request-errors";
  */
 export default function requestQuery(
   response: Response
-): Promise<ResponseByContentTypeProps> {
+): Promise<ResponseByContentType> {
   if (!response.ok) {
-    /**const errorData = {
-      error: "REQUEST ERROR",
-      status: response.status,
-      responseObject: response,
-    };
-
-    throw new Error(JSON.stringify(errorData));*/
-
-    throw new HttpError(response.status, response.statusText);
+    throw new HttpError(response.status, response.statusText, response.url);
   }
 
   return responseByContentType(response);

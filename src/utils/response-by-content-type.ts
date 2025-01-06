@@ -1,4 +1,4 @@
-import { ResponseByContentTypeProps } from "../types";
+import { ResponseByContentType } from "../types/request-response-by-content";
 
 /* ------------------------------------------------------*/
 
@@ -10,7 +10,7 @@ import { ResponseByContentTypeProps } from "../types";
  */
 export default async function responseByContentType(
   response: Response
-): Promise<ResponseByContentTypeProps> {
+): Promise<ResponseByContentType> {
   const contentType = response.headers.get("Content-Type") as string;
 
   if (contentType.includes("application/json")) {

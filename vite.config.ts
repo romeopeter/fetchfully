@@ -7,7 +7,7 @@ export default defineConfig({
       entry: "./src/index.ts",
       name: "simple-fetcher",
       formats: ["es", "umd"],
-      fileName: (format) => `simple-fetcher.${format === "es" ? "mjs" : "cjs"}`,
+      fileName: (format) => `fetchfully.${format === "es" ? "mjs" : "cjs"}`,
     },
     rollupOptions: {
       // Ensure that dependencies are not bundled

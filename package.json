@@ -1,7 +1,7 @@
 {
   "name": "fetchfully",
-  "version": "1.0.0",
-  "description": "Object-first and promise based Fetch API wrapper for convenient HTTP requests. Only specify what you need!",
+  "version": "1.1.0",
+  "description": "JavaScript Fetch API with power pack ⚡️ It wraps the JavaScript Fetch API with additional functionalities for efficiency.",
   "main": "./dist/fetchfully.cjs",
   "module": "./dist/fetchfully.mjs",
   "types": "./dist/index.d.ts",
