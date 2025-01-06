@@ -9,13 +9,12 @@ Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaS
 ---
 
 ## Features
-- **In-Built Base Request Logic**: Automatically handles responses based on content type.
-- **Parses Payload**: Automatically parses mutation request payload as JSON
-- **Simple headers**: Simplifies working with request headers.
-- **Simple Path and Query Parameters**: Automatically constructs and encode URL. Just supply the path and query values.
-- **Customizable Settings**: Set timeouts and query parameter delimiters for your specific needs.
-- **Global config and Instances**: Create different instances that use a global config or override it with instance-specific config.
 - **Object-First Data Fetching**: Supply all init config as object, improving code clarity.
+- **In-Built Base Request Logic**: Automatically handles responses based on content type.
+- **Parses Payload**: Automatically parses mutation request payload as JSON.
+- **Simple Path and Query Parameters**: Pass path and query parameter as properties to Fetchfully init config.
+- **Global config and Instances**: Create different instances that use a global config or override it with instance-specific config.
+- **Consumable request method**: Use consumable methods for ergonomic common HTTP requests.
 
 ---
 
@@ -208,7 +207,7 @@ fetcher.defaults.timeout = 5000;
 ```javascript
 const customAPI = fetcher.create({
   headers: {
-    Authorization: "Bearer token", // Instance-specific authorization header
+    "Authorization": "Bearer token", // Instance-specific authorization header
   },
   timeout: 2500, // Instance-specific base URL overridden by global config base URL.
 });
@@ -221,6 +220,50 @@ await customAPI({
 });
 ```
 Configs made in a created instance take precedence over those in global default config. For instance, the `2500` (2.5 seconds) set above is specific to that instance and overrides the global default timeout (if/when set).
+
+## Consumable methods for ergonomic requests.
+Use these ergonomic methods for common HTTP request.
+
+##### Set base URL
+```javascript
+import fetcher from "fetchfully";
+
+fetcher.defaults.baseUrl = "https://api.example.com";
+```
+
+##### GET request
+```javascript
+// Using convenience methods
+await fetcher.get('users'); // GET request to /users
+await fetcher.get('users', { active: true }); // GET with query params
+```
+
+##### POST request
+```javascript
+await fetcher.post('users', { 
+  name: 'John',
+  email: 'john@example.com'
+});
+```
+
+##### PUT request
+```javascript
+await fetcher.put('users/123', {
+  name: 'John Updated'
+});
+```
+
+##### PATCH request
+```javascript
+await fetcher.patch('users/123', {
+  status: 'active'
+});
+```
+
+##### PATCH request
+```javascript
+await fetcher.delete('users/123');
+```
 
 ## License
 
