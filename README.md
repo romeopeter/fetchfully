@@ -9,6 +9,7 @@ Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaS
 ---
 
 ## Features
+
 - **Object-First Data Fetching**: Supply all init config as object, improving code clarity.
 - **In-Built Base Request Logic**: Automatically handles responses based on content type.
 - **Parses Payload**: Automatically parses mutation request payload as JSON.
@@ -109,7 +110,7 @@ await fetcher({
   url: "https://api.example.com/post",
   method: "PUT",
   headers: {
-    "Authorization": "Bearer token",
+    Authorization: "Bearer token",
     "Content-Type": "application/json",
   },
   body: {
@@ -117,7 +118,7 @@ await fetcher({
     title: "foo",
     body: "bar",
     userId: 1,
-  }
+  },
 });
 ```
 
@@ -130,7 +131,7 @@ await fetcher({
   headers: {
     "Content-Type": "application/json",
   },
-  body: {title: "bar"}
+  body: { title: "bar" },
 });
 ```
 
@@ -146,20 +147,18 @@ When initializing `Fetchfully`, you can pass the following options:
 
 ### Base options
 
-| Option          | Type                                   | Description                                                |
-| --------------- | -------------------------------------- | ---------------------------------------------------------- |
-| `baseUrl`       | `String`                               | Base URL for all requests.                                 |
-| `path`          | `string \| string[] \| undefined`      | URL path segments.                                         |
-| `query`         | `string \| string[] \| undefined`      | URL query parameters.                                      |
-| `method`        | `string`                               | Request action method.                                     |
-| `body`          | `string \| undefined`                  | Request payload.                                           |
-| `credentials`   | `"same-origin" \| "omit" \| "include"` | Request credentials.                                       |
-| `keepalive`     | `boolean`                              | Persist requests request connection.                       |
-| `mode`          | `"same-origin" \| "cors" \| "no-cors"` | Request CORS mode.                                         |
-| `customOptions` | `CustomOptionsType`                    | Request options not explicitly available in the Fetch API. |
-| `timeout`       | `number`                               | Time as milliseconds before terminating request.   |
+| Option             | Type                                          | Description                                        |
+| ------------------ | --------------------------------------------- | -------------------------------------------------- |
+| `baseUrl`          | `String`                                      | Base URL for all requests.                         |
+| `path`             | `string \| string[] \| undefined`             | URL path segments.                                 |
+| `query`            | `string \| string[] \| undefined`             | URL query parameters.                              |
+| `method`           | `string`                                      | Request action method.                             |
+| `body`             | `string \| undefined`                         | Request payload.                                   |
+| `credentials`      | `"same-origin" \| "omit" \| "include"`        | Request credentials.                               |
+| `keepalive`        | `boolean`                                     | Persist requests request connection.               |
+| `mode`             | `"same-origin" \| "cors" \| "no-cors"`        | Request CORS mode.                                 |
+| `timeout`          | `number`                                      | Time as milliseconds before terminating request.   |
 | `queryArrayFormat` | `"brackets" \| "comma" \| "repeat" \| "none"` | Indicates how parameter array should be formatted. |
-
 
 ## Fetchfully Instance
 
@@ -185,7 +184,7 @@ const userAPI = fetcher.create({
 // api/analytics
 const analyticsAPI = fetcher.create({
   baseURL: "https://api.example.com/analytics",
-  timeout: 5000
+  timeout: 5000,
 });
 ```
 
@@ -207,7 +206,7 @@ fetcher.defaults.timeout = 5000;
 ```javascript
 const customAPI = fetcher.create({
   headers: {
-    "Authorization": "Bearer token", // Instance-specific authorization header
+    Authorization: "Bearer token", // Instance-specific authorization header
   },
   timeout: 2500, // Instance-specific base URL overridden by global config base URL.
 });
@@ -219,12 +218,15 @@ await customAPI({
   query: { active: true },
 });
 ```
+
 Configs made in a created instance take precedence over those in global default config. For instance, the `2500` (2.5 seconds) set above is specific to that instance and overrides the global default timeout (if/when set).
 
 ## Consumable methods for ergonomic requests.
+
 Use these ergonomic methods for common HTTP request.
 
 ##### Set base URL
+
 ```javascript
 import fetcher from "fetchfully";
 
@@ -232,37 +234,42 @@ fetcher.defaults.baseUrl = "https://api.example.com";
 ```
 
 ##### GET request
+
 ```javascript
 // Using convenience methods
-await fetcher.get('users'); // GET request to /users
-await fetcher.get('users', { active: true }); // GET with query params
+await fetcher.get("users"); // GET request to /users
+await fetcher.get("users", { active: true }); // GET with query params
 ```
 
 ##### POST request
+
 ```javascript
-await fetcher.post('users', { 
-  name: 'John',
-  email: 'john@example.com'
+await fetcher.post("users", {
+  name: "John",
+  email: "john@example.com",
 });
 ```
 
 ##### PUT request
+
 ```javascript
-await fetcher.put('users/123', {
-  name: 'John Updated'
+await fetcher.put("users/123", {
+  name: "John Updated",
 });
 ```
 
 ##### PATCH request
+
 ```javascript
-await fetcher.patch('users/123', {
-  status: 'active'
+await fetcher.patch("users/123", {
+  status: "active",
 });
 ```
 
 ##### PATCH request
+
 ```javascript
-await fetcher.delete('users/123');
+await fetcher.delete("users/123");
 ```
 
 ## License
