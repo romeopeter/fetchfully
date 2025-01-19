@@ -35,6 +35,8 @@ yarn add fetchfully
 
 ### Basic request with default instance
 
+_NOTE: The API endpoints below are for demonstration purposes only. Test on live endpoints for expected result._
+
 ##### 1. Normal request
 
 ```javascript
@@ -48,7 +50,7 @@ await fetcher({ url: "https://api.example.com/posts" });
 ```javascript
 await fetcher({
   url: "https://api.example.com",
-  path: "/posts1/comments",
+  path: "posts1/comments",
 });
 
 // URL results in: https://api.example.com/posts/1/commments
@@ -214,7 +216,7 @@ const customAPI = fetcher.create({
 // Use custom instance
 // URL results in: 'https://api.example.com/users?active=true
 await customAPI({
-  path: "/users",
+  path: "users",
   query: { active: true },
 });
 ```
@@ -254,7 +256,7 @@ await fetcher.post("users", {
 
 ```javascript
 await fetcher.put("users/123", {
-  name: "John Updated",
+  name: "John Doe",
 });
 ```
 
