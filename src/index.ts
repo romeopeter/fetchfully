@@ -1,15 +1,15 @@
-import { defaults } from "./defaults";
+import { defaultConfig } from "./default-config";
 import { createFetcher } from "./fetcher";
 import type { FetchfullyConfig, FetchfullyInstance } from "./types/config";
 import { mergeConfig } from "./utils/mergeConfig";
 
 /* ---------------------------------------------------------------------------------- */
 
-const defaultFetchfullyInstance = createFetcher(defaults) as FetchfullyInstance;
+const defaultFetchfullyInstance = createFetcher(defaultConfig) as FetchfullyInstance;
 
 // Factory method to produce a new fetcher instance
 defaultFetchfullyInstance.create = (config?: FetchfullyConfig) => {
-  const instanceConfig = mergeConfig(defaults, config || {});
+  const instanceConfig = mergeConfig(defaultConfig, config || {});
 
   return createFetcher(instanceConfig) as FetchfullyInstance;
 };

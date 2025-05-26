@@ -1,6 +1,6 @@
-import responseByContentType from "../utils/response-by-content-type";
-import { ResponseByContentType } from "../types/request-response-by-content";
-import { HttpError } from "../utils/custom-request-errors";
+import responseByContentType from "./utils/response-by-content-type";
+import { ResponseByContentType } from "./types/request-response-by-content";
+import { HttpError } from "./utils/custom-request-errors";
 
 /* ---------------------------------------------------------------------- */
 
