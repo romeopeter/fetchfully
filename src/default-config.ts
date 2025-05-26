@@ -2,6 +2,7 @@ import { FetchfullyConfig } from "./types/config";
 
 /* ----------------------------------------------------- */
 
+
 // Default request configuration
 export const defaultConfig: FetchfullyConfig = {
   method: "GET",
