@@ -3,7 +3,7 @@ import { FetchfullyConfig } from "./types/config";
 /* ----------------------------------------------------- */
 
 // Default request configuration
-export const defaults: FetchfullyConfig = {
+export const defaultConfig: FetchfullyConfig = {
   method: "GET",
   credentials: "same-origin",
   keepalive: false,
