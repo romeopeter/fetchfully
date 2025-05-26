@@ -10,12 +10,13 @@ Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaS
 
 ## Features
 
-- **Object-First Data Fetching**: Supply all init config as object, improving code clarity.
-- **In-Built Base Request Logic**: Automatically handles responses based on content type.
-- **Parses Payload**: Automatically parses mutation request payload as JSON.
-- **Simple Path and Query Parameters**: Pass path and query parameter as properties to Fetchfully init config.
-- **Global config and Instances**: Create different instances that use a global config or override it with instance-specific config.
+- **Object-first data fetching**: Supply all init config as object, improving code clarity.
+- **In-built request Logic**: Automatically handles responses based on content type.
+- **Parses JSON payload**: Parses mutation request payload as JSON.
+- **Simple path and query parameters**: Work better with URL parameters. Pass path and query parameter as object value. Tweak query parameters delimiter in config.
+- **Global config and instances**: Create different instances that use a global config or override it with instance-specific config.
 - **Consumable request method**: Use consumable methods for ergonomic common HTTP requests.
+- **Request status**: Monitor request status for loading, failed and successful network request states.
 
 ---
 
