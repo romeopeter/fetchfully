@@ -1,6 +1,6 @@
 import { mergeConfig } from "./utils/mergeConfig";
-import requestQuery from "./requestQuery";
-import mutationQuery from "./mutationQuery";
+import requestQuery from "./request-query";
+import mutationQuery from "./mutation-query";
 import { constructUrl } from "./utils/url-parameters";
 import {
   NetworkError,
