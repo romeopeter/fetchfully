@@ -8,7 +8,7 @@ import {
   TimeoutError,
   HttpError,
 } from "./utils/custom-request-errors";
-import { attachMethods } from "./consumable-methods";
+import { attachMethodsToFetcher } from "./consumable-methods";
 import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
 
 /* -------------------------------------------------------- */
@@ -34,17 +34,13 @@ export function createFetcher(
 
     const fetcherOptions: RequestInit = {
       method: mergedConfig.method,
-      body: mergedConfig.body,
+      body: (mergedConfig.body && mergedConfig.method !== "GET")? JSON.stringify(mergedConfig.body): undefined,
       headers: mergedConfig.headers,
       credentials: mergedConfig.credentials,
       keepalive: mergedConfig.keepalive,
       mode: mergedConfig.mode,
       signal: abortRequest.signal,
     };
-
-    if (mergedConfig.method !== "GET") {
-      fetcherOptions.body = JSON.stringify(mergedConfig.body);
-    }
 
     try {
       if (mergedConfig.timeout) {
@@ -60,7 +56,7 @@ export function createFetcher(
         requestQueryParameter
       );
 
-      //  Check for base URL, remove extra slash and then append sub url it
+      //  Check for base URL, remove extra slash and append sub url
       if (mergedConfig.baseURL) {
         fullUrl = constructUrl(
           `${mergedConfig.baseURL.replace(/\/+$/, "")}`,
@@ -85,16 +81,20 @@ export function createFetcher(
           throw new CorsError("CORS error occurred");
         } else if (error.message.includes("fetch failed")) {
           throw new NetworkError("Network error occurred");
-        } else {
-          throw error;
         }
-      } else if (error.name === "AbortError") {
+
+        throw error
+      }
+      
+      if (error.name === "AbortError") {
         throw new TimeoutError("Request timed out");
-      } else if (error instanceof HttpError) {
-        throw error;
-      } else {
+      }
+      
+      if (error instanceof HttpError) {
         throw error;
       }
+
+      throw error
     } finally {
       clearTimeout(timeoutID);
     }
@@ -102,5 +102,5 @@ export function createFetcher(
 
   fetcher.defaults = defaultConfig;
 
-  return attachMethods(fetcher as FetchfullyInstance);
+  return attachMethodsToFetcher(fetcher as FetchfullyInstance);
 }
