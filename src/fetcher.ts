@@ -8,7 +8,7 @@ import {
   TimeoutError,
   HttpError,
 } from "./utils/custom-request-errors";
-import { attachMethodsToFetcher } from "./consumable-methods";
+import { attachActionMethods } from "./consumable-methods";
 import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
 import createResponse from "./response";
 import { FetchfullyResponse } from "./types/fetchfully-response";
@@ -188,5 +188,5 @@ export function createFetcher(
 
   fetcher.defaults = defaultConfig;
 
-  return attachMethodsToFetcher(fetcher as FetchfullyInstance);
+  return attachActionMethods(fetcher as FetchfullyInstance);
 }
