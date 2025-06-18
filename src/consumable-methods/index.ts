@@ -12,7 +12,7 @@ import { FetchfullyInstance } from "../types/config";
  * 
  * @param instance FetchfullyInstance
  */
-export function attachMethodsToFetcher(instance: FetchfullyInstance) {
+export function attachActionMethods(instance: FetchfullyInstance) {
   instance.get = createGetMethod(instance);
   instance.post = createPostMethod(instance);
   instance.put = createPutMethod(instance);
