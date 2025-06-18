@@ -12,9 +12,8 @@ export default function createResponse<T>(
   headers?: Headers,
   refetch?: () => Promise<FetchfullyResponse<T>>
 ): FetchfullyResponse<T> {
-  // Convenient request status check...
   const convenientStatusCheck = {
-    isIdle: status === "idle",
+    isIdle: status !== "loading", // Request is idle if no loading operation
     isLoading: status === "loading",
     isError: status === "error",
     isSuccess: status === "success",
