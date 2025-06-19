@@ -12,7 +12,7 @@ export const defaultConfig: FetchfullyConfig = {
   queryArrayFormat: "comma",
   timeout: 0,
   headers: {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json; charset=UTF-8",
     "Cache-Control": "no-cache",
   },
 };
