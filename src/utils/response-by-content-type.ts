@@ -20,5 +20,5 @@ export default async function responseByContentType(response: Response) {
   if (contentType.includes("image/")) return await response.blob();
 
   // if content type is unknown
-  return response.text();
+  return await response.text();
 }
