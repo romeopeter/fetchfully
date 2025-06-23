@@ -6,7 +6,7 @@ import { RequestMethods } from "./consumable-methods";
 export type RequestHeaders = {
   Authorization?: string;
   "Content-Type"?:
-    | "application/json"
+    | "application/json; charset=UTF-8"
     | "application/x-www-form-urlencoded"
     | "multipart/form-data"
     | "text/html"
@@ -30,7 +30,7 @@ export type FetchfullyConfig = {
   timeout?: number;
   queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
   retries?: number;
-  retryDelay?: number;
+  // retryDelay?: number;
   whenSuccessful?: (data: any) => void;
   whenFailed?: (data: Error) => void;
   whenDone?: (data: any, Error: null | Error) => void;
