@@ -27,7 +27,7 @@ export function createFetcher(
   async function fetcher(
     requestConfig: FetchfullyConfig
   ): Promise<FetchfullyResponse> {
-    let responseState: FetchfullyResponse;
+    let response: FetchfullyResponse;
     const mergedConfig = mergeConfig(defaultConfig, requestConfig);
     const abortRequest = new AbortController(); // Controller object to abort request
     let timeoutID; // used as ID to cancel timeout object created by setTimeout().
@@ -39,10 +39,7 @@ export function createFetcher(
 
     const fetcherOptions: RequestInit = {
       method: mergedConfig.method,
-      body:
-        mergedConfig.body && mergedConfig.method !== "GET"
-          ? JSON.stringify(mergedConfig.body)
-          : undefined,
+      body: mergedConfig.body ? JSON.stringify(mergedConfig.body) : undefined,
       headers: mergedConfig.headers,
       credentials: mergedConfig.credentials,
       keepalive: mergedConfig.keepalive,
@@ -50,10 +47,11 @@ export function createFetcher(
       signal: abortRequest.signal,
     };
 
-    const refetch = () => fetcher(requestConfig);
+    const refetch = (override?: Partial<FetchfullyConfig>) =>
+      fetcher({ ...requestConfig, ...override });
 
     try {
-      responseState = createResponse(
+      response = createResponse(
         "loading",
         null,
         null,
@@ -84,34 +82,34 @@ export function createFetcher(
         );
       }
 
-      const response = await fetch(fullUrl, fetcherOptions);
+      const requestResponse = await fetch(fullUrl, fetcherOptions);
 
       // Normal request
-      const data = requestQuery(response);
+      const data = requestQuery(requestResponse);
 
       // Mutation request
       if (mergedConfig.method !== "GET") {
-        const data = mutationQuery(response);
-        responseState = createResponse(
+        const data = mutationQuery(requestResponse);
+        response = createResponse(
           "success",
           data,
           null,
-          response.status,
-          response.headers,
+          requestResponse.status,
+          requestResponse.headers,
           refetch
         );
       }
 
-      responseState = createResponse(
+      response = createResponse(
         "success",
         data,
         null,
-        response.status,
-        response.headers,
+        requestResponse.status,
+        requestResponse.headers,
         refetch
       );
 
-      return responseState;
+      return response;
     } catch (error: any) {
       if (error instanceof TypeError) {
         if (
