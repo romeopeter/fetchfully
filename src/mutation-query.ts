@@ -1,6 +1,8 @@
-import responseByContentType from "./utils/response-by-content-type";
-import { ResponseByContentType } from "./types/request-response-by-content";
+import filterByContentType from "./utils/filter-by-content-type";
+import fetchfullyResponse from "./response";
 import { HttpError } from "./utils/custom-request-errors";
+import { FetchfullyConfig } from "./types/config";
+import { FetchfullyResponse } from "./types/fetchfully-response";
 
 /* ---------------------------------------------------------------------- */
 
@@ -12,16 +14,35 @@ import { HttpError } from "./utils/custom-request-errors";
  * @returns Promise<any>
  */
 export default function mutationQuery(
-  response: Response
-): Promise<ResponseByContentType> | undefined {
+  originResponse: Response,
+  refetch?: (
+    override?: Partial<FetchfullyConfig>
+  ) => Promise<FetchfullyResponse>
+): FetchfullyResponse<any> {
+  let response = fetchfullyResponse(
+    "loading",
+    null,
+    null,
+    undefined,
+    undefined
+  );
+
   // Server error
-  if (response.status > 499 && response.status <= 599) {
-    throw new HttpError(response.status, response.statusText, response.url);
+  if (originResponse.status > 499 && originResponse.status <= 599) {
+    throw new HttpError(
+      originResponse.status,
+      originResponse.statusText,
+      originResponse.url
+    );
   }
 
   // Client error
-  if (response.status > 399 && response.status <= 499) {
-    throw new HttpError(response.status, response.statusText, response.url);
+  if (originResponse.status > 399 && originResponse.status <= 499) {
+    throw new HttpError(
+      originResponse.status,
+      originResponse.statusText,
+      originResponse.url
+    );
   }
 
   /**
@@ -30,8 +51,17 @@ export default function mutationQuery(
    * - 200 (OK) or 201 (created).
    *
    */
-  if (response.status === 200 || response.status === 201) {
-    return responseByContentType(response);
+  if (originResponse.status === 200 || originResponse.status === 201) {
+    const data = filterByContentType(originResponse);
+
+    response = fetchfullyResponse(
+      "success",
+      data,
+      null,
+      originResponse.status,
+      originResponse.headers,
+      refetch
+    );
   }
 
   /**
@@ -43,11 +73,20 @@ export default function mutationQuery(
    * or 422 (Unprocessable Entity) may be seen. This is already handled above!
    */
   if (
-    response.status === 200 ||
-    response.status === 204 ||
-    response.status === 304
+    originResponse.status === 200 ||
+    originResponse.status === 204 ||
+    originResponse.status === 304
   ) {
-    return responseByContentType(response);
+    const data = filterByContentType(originResponse);
+
+    response = fetchfullyResponse(
+      "success",
+      data,
+      null,
+      originResponse.status,
+      originResponse.headers,
+      refetch
+    );
   }
 
   /**
@@ -59,10 +98,21 @@ export default function mutationQuery(
    * - 200 (OK) status code if the action has been enacted and the response message includes a representation describing the status.
    */
   if (
-    response.status == 200 ||
-    response.status === 202 ||
-    response.status === 204
+    originResponse.status == 200 ||
+    originResponse.status === 202 ||
+    originResponse.status === 204
   ) {
-    return responseByContentType(response);
+    const data = filterByContentType(originResponse);
+
+    response = fetchfullyResponse(
+      "success",
+      data,
+      null,
+      originResponse.status,
+      originResponse.headers,
+      refetch
+    );
   }
+
+  return response
 }
