@@ -4,7 +4,7 @@ import { FetchfullyResponse } from "./types/fetchfully-response";
 /* -------------------------------------------------------------- */
 
 // Response object
-export default function createResponse<T>(
+export default function fetchfullyResponse<T>(
   status: RequestStatus,
   data: T | null = null,
   error: Error | null = null,
