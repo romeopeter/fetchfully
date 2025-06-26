@@ -17,7 +17,7 @@ type Override = (
  * @param refetch Override: Re-execute user query
  * @returns FetchfullyResponse<any>
  */
-export default function requestQuery(
+export default async function requestQuery(
   originResponse: Response,
   refetch?: Override
 ) {
@@ -30,7 +30,7 @@ export default function requestQuery(
   );
 
   if (originResponse.ok) {
-    const data = filterByContentType(originResponse);
+    const data = await filterByContentType(originResponse);
 
     response = fetchfullyResponse(
       "success",
