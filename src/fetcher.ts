@@ -86,11 +86,11 @@ export function createFetcher(
 
       // Mutation request
       if (config.method !== "GET") {
-        return mutationQuery(originResponse);
+        return mutationQuery(originResponse, refetch);
       }
 
       // // Normal request
-      return requestQuery(originResponse);
+      return requestQuery(originResponse, refetch);
     } catch (error: any) {
       if (error instanceof TypeError) {
         if (
