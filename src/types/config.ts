@@ -6,7 +6,7 @@ import { RequestMethods } from "./consumable-methods";
 export type RequestHeaders = {
   Authorization?: string;
   "Content-Type"?:
-    | "application/json; charset=UTF-8"
+    | "application/json"
     | "application/x-www-form-urlencoded"
     | "multipart/form-data"
     | "text/html"
@@ -22,8 +22,8 @@ export type FetchfullyConfig = {
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?: any;
-  headers?: RequestHeaders; 
+  body?: string | FormData | Blob | ArrayBuffer | undefined;
+  headers?: RequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
