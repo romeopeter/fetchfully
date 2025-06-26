@@ -17,6 +17,7 @@ Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaS
 - **Global config and instances**: Create different instances that use a global config or override it with instance-specific config.
 - **Consumable request method**: Use consumable methods for ergonomic common HTTP requests.
 - **Request status**: Monitor request status for loading, failed and successful network request states.
+- **Refetch request**: Easily make refetch without reconstructing request config.
 
 ---
 
@@ -273,6 +274,35 @@ await fetcher.patch("users/123", {
 
 ```javascript
 await fetcher.delete("users/123");
+```
+
+## Fetchfully Refetch
+
+The `refetch` method lets re-run the exact same request with the same configuration to get fresh data without reconstructing entire request.
+
+```javascript
+// Example 1: Basic refetch
+const response = await fetchfully.get("/api/users");
+
+if (response.isSuccess) {
+  console.log("Users:", response.data);
+
+  const freshResponse = await response.refetch?.();
+  console.log("Updated users:", freshResponse.data);
+}
+
+// Example 2: Refetch on user action
+const userResponse = await fetchfully.get("/api/user/123");
+
+const handleRefresh = async () => {
+  if (userResponse.refetch) {
+    const refreshed = await userResponse.refetch();
+    if (refreshed.isSuccess) {
+      // Update UI with fresh data
+      setUser(refreshed.data);
+    }
+  }
+};
 ```
 
 ## License

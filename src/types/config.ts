@@ -4,7 +4,7 @@ import { RequestMethods } from "./consumable-methods";
 
 // Common request headers type
 export type RequestHeaders = {
-  "Authorization"?: string;
+  Authorization?: string;
   "Content-Type"?:
     | "application/json"
     | "application/x-www-form-urlencoded"
@@ -22,13 +22,18 @@ export type FetchfullyConfig = {
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?: any;
+  body?: string | FormData | Blob | ArrayBuffer | undefined;
   headers?: RequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
   timeout?: number;
   queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
+  retries?: number;
+  // retryDelay?: number;
+  whenSuccessful?: (data: any) => void;
+  whenFailed?: (data: Error) => void;
+  whenDone?: (data: any, Error: null | Error) => void;
 };
 
 // Fetchfully instance structure
