@@ -1,25 +1,25 @@
 /**
- * Returns formatted data according to response content type.
+ * Consume request response data by content type.
  *
- * @param response: Response
+ * @param originResponse: Response
  * @returns Promise<any>
  */
 export default async function filterByContentType(originResponse: Response) {
   const contentType = originResponse.headers.get("Content-Type") as string;
+  let data: string | FormData | ArrayBuffer | Blob;
 
-  if (contentType.includes("application/json"))
-    return await originResponse.json();
-
-  if (contentType.includes("application/octet-stream")) {
-    return await originResponse.arrayBuffer();
+  if (contentType?.includes("application/json")) {
+    data = await originResponse.json();
+  } else if (contentType?.includes("application/octet-stream")) {
+    data = await originResponse.arrayBuffer();
+  } else if (contentType?.includes("multipart/form-data")) {
+    data = await originResponse.formData();
+  } else if (contentType?.includes("image/")) {
+    data = await originResponse.blob();
+  } else {
+    // Default case: read as text
+    data = await originResponse.text();
   }
 
-  if (contentType.includes("multipart/form-data")) {
-    return await originResponse.formData();
-  }
-
-  if (contentType.includes("image/")) return await originResponse.blob();
-
-  // if content type is unknown
-  return await originResponse.text();
+  return data;
 }
