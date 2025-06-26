@@ -54,8 +54,6 @@ export default async function mutationQuery(
   if (originResponse.status === 200 || originResponse.status === 201) {
     const data = await filterByContentType(originResponse);
 
-    console.log(data);
-
     response = fetchfullyResponse(
       "success",
       data,
