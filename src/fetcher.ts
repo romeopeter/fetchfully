@@ -1,115 +1,96 @@
-import { mergeConfig } from "./utils/mergeConfig";
 import requestQuery from "./request-query";
 import mutationQuery from "./mutation-query";
 import { constructUrl } from "./utils/url-parameters";
+import { mergeConfig } from "./utils/mergeConfig";
 import {
   NetworkError,
   CorsError,
   TimeoutError,
   HttpError,
 } from "./utils/custom-request-errors";
+import fetchfullyResponse from "./response";
 import { attachActionMethods } from "./consumable-methods";
 import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
-import createResponse from "./response";
 import { FetchfullyResponse } from "./types/fetchfully-response";
 
-/* -------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------ */
 
 /**
- * Creates and instance of the core fetcher function
+ * Creates an instance of the core fetcher function
  *
  * @param defaultConfig FetchfullyConfig
  *
  */
 export function createFetcher(
-  defaultConfig: FetchfullyConfig = {}
+  factoryConfig: FetchfullyConfig = {}
 ): Omit<FetchfullyInstance, "create"> {
   async function fetcher(
-    requestConfig: FetchfullyConfig
+    initConfig: FetchfullyConfig
   ): Promise<FetchfullyResponse> {
-    let response: FetchfullyResponse;
-    const mergedConfig = mergeConfig(defaultConfig, requestConfig);
+    const config = mergeConfig(factoryConfig, initConfig);
     const abortRequest = new AbortController(); // Controller object to abort request
-    let timeoutID; // used as ID to cancel timeout object created by setTimeout().
+    let timeoutID; // ID to terminate timeout object created by setTimeout().
+
+    // Re-execute request with the same config
+    const refetch = (override?: Partial<FetchfullyConfig>) =>
+      fetcher({ ...initConfig, ...override });
 
     const requestQueryParameter = {
-      query: mergedConfig.query,
-      queryArrayFormat: mergedConfig.queryArrayFormat,
+      query: config.query,
+      queryArrayFormat: config.queryArrayFormat,
     };
 
-    const fetcherOptions: RequestInit = {
-      method: mergedConfig.method,
-      body: mergedConfig.body ? JSON.stringify(mergedConfig.body) : undefined,
-      headers: mergedConfig.headers,
-      credentials: mergedConfig.credentials,
-      keepalive: mergedConfig.keepalive,
-      mode: mergedConfig.mode,
+    const fetchConfig: RequestInit = {
+      method: config.method,
+      body: undefined,
+      headers: config.headers,
+      credentials: config.credentials,
+      keepalive: config.keepalive,
+      mode: config.mode,
       signal: abortRequest.signal,
     };
 
-    const refetch = (override?: Partial<FetchfullyConfig>) =>
-      fetcher({ ...requestConfig, ...override });
+    if (config.body && config.method !== "GET") {
+      if (config.body instanceof FormData) {
+        fetchConfig.body = config.body;
+
+        // fetchConfig.headers[""]
+      } else if (typeof config.body === "string") {
+        fetchConfig.body = config.body;
+      } else {
+        fetchConfig.body = JSON.stringify(config.body);
+      }
+    }
 
     try {
-      response = createResponse(
-        "loading",
-        null,
-        null,
-        undefined,
-        undefined,
-        refetch
-      );
-
-      if (mergedConfig.timeout) {
-        timeoutID = setTimeout(
-          () => abortRequest.abort(),
-          mergedConfig.timeout
-        );
+      if (config.timeout) {
+        timeoutID = setTimeout(() => abortRequest.abort(), config.timeout);
       }
 
       let fullUrl = constructUrl(
-        mergedConfig.url || "",
-        mergedConfig.path,
+        config.url || "",
+        config.path,
         requestQueryParameter
       );
 
       //  Check for base URL, remove extra slash and append sub url
-      if (mergedConfig.baseURL) {
+      if (config.baseURL) {
         fullUrl = constructUrl(
-          `${mergedConfig.baseURL.replace(/\/+$/, "")}`,
-          mergedConfig.path,
+          `${config.baseURL.replace(/\/+$/, "")}`,
+          config.path,
           requestQueryParameter
         );
       }
 
-      const requestResponse = await fetch(fullUrl, fetcherOptions);
-
-      // Normal request
-      const data = requestQuery(requestResponse);
+      const originResponse = await fetch(fullUrl, fetchConfig);
 
       // Mutation request
-      if (mergedConfig.method !== "GET") {
-        const data = mutationQuery(requestResponse);
-        response = createResponse(
-          "success",
-          data,
-          null,
-          requestResponse.status,
-          requestResponse.headers,
-          refetch
-        );
+      if (config.method !== "GET") {
+        return mutationQuery(originResponse);
       }
 
-      response = createResponse(
-        "success",
-        data,
-        null,
-        requestResponse.status,
-        requestResponse.headers,
-        refetch
-      );
-
-      return response;
+      // // Normal request
+      return requestQuery(originResponse);
     } catch (error: any) {
       if (error instanceof TypeError) {
         if (
@@ -118,7 +99,7 @@ export function createFetcher(
         ) {
           const corsError = new CorsError("CORS error occurred");
 
-          return createResponse(
+          return fetchfullyResponse(
             "error",
             null,
             corsError,
@@ -126,9 +107,11 @@ export function createFetcher(
             undefined,
             refetch
           );
-        } else if (error.message.includes("fetch failed")) {
+        }
+
+        if (error.message.includes("fetch failed")) {
           const networkError = new NetworkError("Network error occurred");
-          return createResponse(
+          return fetchfullyResponse(
             "error",
             null,
             networkError,
@@ -138,7 +121,7 @@ export function createFetcher(
           );
         }
 
-        return createResponse(
+        return fetchfullyResponse(
           "error",
           null,
           error,
@@ -150,7 +133,7 @@ export function createFetcher(
 
       if (error.name === "AbortError") {
         const timeoutError = new TimeoutError("Request timed out");
-        return createResponse(
+        return fetchfullyResponse(
           "error",
           null,
           timeoutError,
@@ -161,7 +144,7 @@ export function createFetcher(
       }
 
       if (error instanceof HttpError) {
-        return createResponse(
+        return fetchfullyResponse(
           "error",
           null,
           error,
@@ -171,7 +154,7 @@ export function createFetcher(
         );
       }
 
-      return createResponse(
+      return fetchfullyResponse(
         "error",
         null,
         error,
@@ -184,7 +167,7 @@ export function createFetcher(
     }
   }
 
-  fetcher.defaults = defaultConfig;
+  fetcher.defaults = factoryConfig;
 
   return attachActionMethods(fetcher as FetchfullyInstance);
 }
