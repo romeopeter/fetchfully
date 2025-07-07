@@ -6,6 +6,7 @@
   "module": "./dist/fetchfully.mjs",
   "types": "./dist/index.d.ts",
   "type": "module",
+  "public": true,
   "exports": {
     ".": {
       "import": "./dist/fetchfully.mjs",
