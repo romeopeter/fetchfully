@@ -4,7 +4,7 @@
 
 <br />
 
-Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaScript Fetch API with additional functionalities for ease and efficiency.
+Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaScript Fetch API with additional functionalities for simplicity and efficiency.
 
 ---
 
@@ -298,8 +298,7 @@ const handleRefresh = async () => {
   if (userResponse.refetch) {
     const refreshed = await userResponse.refetch();
     if (refreshed.isSuccess) {
-      // Update UI with fresh data
-      setUser(refreshed.data);
+      setUser(refreshed.data); // Update UI with fresh data
     }
   }
 };
