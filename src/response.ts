@@ -1,5 +1,4 @@
-import { RequestStatus } from "./types/fetchfully-response";
-import { FetchfullyResponse } from "./types/fetchfully-response";
+import { FetchfullyResponse, RequestStatus } from "./types";
 
 /* -------------------------------------------------------------- */
 
@@ -13,7 +12,7 @@ export default function fetchfullyResponse<T>(
   refetch?: () => Promise<FetchfullyResponse<T>>
 ): FetchfullyResponse<T> {
   const convenientStatusCheck = {
-    isIdle: status !== "loading", // Request is idle if no loading operation
+    isIdle: status !== "loading", // Request is idle if there's no loading operation
     isLoading: status === "loading",
     isError: status === "error",
     isSuccess: status === "success",
