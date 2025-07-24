@@ -10,8 +10,11 @@ import {
 } from "./utils/custom-request-errors";
 import fetchfullyResponse from "./response";
 import { attachActionMethods } from "./consumable-methods";
-import { FetchfullyConfig, FetchfullyInstance } from "./types/config";
-import { FetchfullyResponse } from "./types/fetchfully-response";
+import {
+  type FetchfullyConfig,
+  type FetchfullyResponse,
+  type FetchfullyInstance,
+} from "./types";
 
 /* ------------------------------------------------------------------------------------ */
 
