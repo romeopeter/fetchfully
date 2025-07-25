@@ -1,9 +1,7 @@
 import filterByContentType from "./utils/filter-by-content-type";
 import fetchfullyResponse from "./response";
 import { HttpError } from "./utils/custom-request-errors";
-import { FetchfullyConfig } from "./types/config";
-import { FetchfullyResponse } from "./types/fetchfully-response";
-
+import { FetchfullyResponse, FetchfullyConfig } from "./types";
 /* ---------------------------------------------------------------------- */
 
 /**
