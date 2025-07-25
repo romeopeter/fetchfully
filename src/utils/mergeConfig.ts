@@ -1,4 +1,4 @@
-import { FetchfullyConfig } from "../types/config";
+import { FetchfullyConfig } from "../types";
 
 /**
  * Merges instance-specific config to default config.
@@ -26,12 +26,16 @@ export function mergeConfig(
         isObject(target[key as keyof FetchfullyConfig])
       ) {
         // Recursively merge nested objects
+        //@ts-ignore
         target[key as keyof FetchfullyConfig] = merge(
+          //@ts-ignore
           { ...target[key as keyof FetchfullyConfig] },
+          //@ts-ignore
           source[key as keyof Partial<FetchfullyConfig>]
         );
       } else {
         // Override or add property
+        //@ts-ignore
         target[key as keyof FetchfullyConfig] =
           source[key as keyof Partial<FetchfullyConfig>];
       }
