@@ -1,7 +1,6 @@
-import { FetchfullyConfig } from "./types/config";
+import { FetchfullyConfig } from "./types";
 
 /* ----------------------------------------------------- */
-
 
 // Default request configuration
 export const defaultConfig: FetchfullyConfig = {
