@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: "./src/index.ts",
-      name: "simple-fetcher",
+      name: "fetchfully",
       formats: ["es", "umd"],
       fileName: (format) => `fetchfully.${format === "es" ? "mjs" : "cjs"}`,
     },
