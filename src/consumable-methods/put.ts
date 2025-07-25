@@ -1,5 +1,4 @@
-import { FetchfullyInstance } from "../types/config";
-import { FetchfullyResponse } from "../types/fetchfully-response";
+import { FetchfullyInstance, FetchfullyResponse } from "../types";
 
 /* ------------------------------------------------- */
 

@@ -3,7 +3,7 @@ import { createPostMethod } from "./post";
 import { createPutMethod } from "./put";
 import { createPatchMethod } from "./patch";
 import { createDeleteMethod } from "./delete";
-import { FetchfullyInstance } from "../types/config";
+import { FetchfullyInstance } from "../types";
 
 /* ----------------------------------------------------------------- */
 
