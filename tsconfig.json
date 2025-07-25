@@ -7,6 +7,8 @@
     "skipLibCheck": true,
     "declaration": true,
     "declarationDir": "./dist",
+    "sourceMap": true,
+    "outDir": "./dist",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -19,5 +21,5 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"]
+  "include": ["src/**/*"],
 }
