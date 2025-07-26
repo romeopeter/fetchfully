@@ -1,10 +1,10 @@
 # Fetchfully
 
-<!-- <img src="./SimpleFetch.png" style="max-width:300px;display:block" /> -->
+<!-- <img src="./fetchfully.png" style="max-width:300px;display:block" /> -->
 
 <br />
 
-Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaScript Fetch API with additional functionalities for simplicity and efficiency.
+**Fetchfully** wraps the JavaScript Fetch API with additional functionalities for simplicity and efficiency. It's the Javascript Fetch API with Power Pack ⚡️
 
 ---
 
@@ -18,6 +18,7 @@ Javascript Fetch API with Power Pack ⚡️ <br/> **Fetchfully** wraps the JavaS
 - **Consumable request method**: Use consumable methods for ergonomic common HTTP requests.
 - **Request status**: Monitor request status for loading, failed and successful network request states.
 - **Refetch request**: Easily make refetch without reconstructing request config.
+- **Fully Type**: Use Typescript and exports all necessary types for easy configuration
 
 ---
 
@@ -27,10 +28,6 @@ Install the package using npm or yarn:
 
 ```bash
 npm install fetchfully
-
-# or
-
-yarn add fetchfully
 ```
 
 ## How To Use
@@ -42,7 +39,7 @@ _NOTE: The API endpoints below are for demonstration purposes only. Test on live
 ##### 1. Normal request
 
 ```javascript
-import fetcher from "fetch-plus";
+import fetcher from "fetchfully";
 
 await fetcher({ url: "https://api.example.com/posts" });
 ```
@@ -205,25 +202,24 @@ fetcher.defaults.baseUrl = "https://api.example.com";
 fetcher.defaults.timeout = 5000;
 ```
 
-##### Custom Instance Default
+##### Custom default by instance
 
 ```javascript
 const customAPI = fetcher.create({
   headers: {
-    Authorization: "Bearer token", // Instance-specific authorization header
+    Authorization: "Bearer token", // Instance specific authorization header
   },
-  timeout: 2500, // Instance-specific base URL overridden by global config base URL.
+  timeout: 2500, // Instance specific timeout.
 });
 
 // Use custom instance
-// URL results in: 'https://api.example.com/users?active=true
 await customAPI({
   path: "users",
-  query: { active: true },
+  query: { active: true }, // 'https://api.example.com/users?active=true
 });
 ```
 
-Configs made in a created instance take precedence over those in global default config. For instance, the `2500` (2.5 seconds) set above is specific to that instance and overrides the global default timeout (if/when set).
+Instance specific configs take precedence over those in global default config. For instance, the `2500` (2.5 seconds) set above is specific to that instance alone.
 
 ## Consumable methods for ergonomic requests.
 
@@ -241,8 +237,8 @@ fetcher.defaults.baseUrl = "https://api.example.com";
 
 ```javascript
 // Using convenience methods
-await fetcher.get("users"); // GET request to /users
-await fetcher.get("users", { active: true }); // GET with query params
+await fetcher.get("users");
+await fetcher.get("users", { active: true }); // https://api.example.com/users?active=true
 ```
 
 ##### POST request
@@ -278,7 +274,7 @@ await fetcher.delete("users/123");
 
 ## Fetchfully Refetch
 
-The `refetch` method lets re-run the exact same request with the same configuration to get fresh data without reconstructing entire request.
+The `refetch` method lets you re-run the exact same request with the same configuration to get fresh data without reconstructing entire request.
 
 ```javascript
 // Example 1: Basic refetch
