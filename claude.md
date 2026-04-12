@@ -162,7 +162,7 @@ Handles GET requests:
 - Validates `response.ok`
 - Filters response by Content-Type
 - Returns standardized FetchfullyResponse
-- Throws HttpError for non-ok responses
+- Returns error response (not throws) for non-ok responses
 
 ### `mutation-query.ts`
 Handles POST/PUT/PATCH/DELETE requests:
@@ -170,8 +170,8 @@ Handles POST/PUT/PATCH/DELETE requests:
   - **200/201**: Success (POST/PUT)
   - **204/304**: Success (PATCH)
   - **202/204**: Success (DELETE)
-  - **400-499**: Client errors
-  - **500-599**: Server errors
+  - **400-499**: Client errors (returns error response)
+  - **500-599**: Server errors (returns error response)
 
 ### `response.ts`
 Response factory that creates standardized response objects with:
@@ -240,10 +240,15 @@ npm run build  # Build for production
 
 ## Known Issues and Areas for Improvement
 
-### Critical Bugs
-1. **URL Query String Bug** (`src/utils/url-parameters.ts:95`):
-   - Adds an extra `/` before query strings
-   - Should be fixed to prevent malformed URLs
+### Recent Fixes (bug-fixes branch)
+1. ✅ **URL Query String Bug** (Fixed in `src/utils/url-parameters.ts:95`):
+   - Removed extra `/` before query strings that caused malformed URLs
+2. ✅ **Error Handling Improvements**:
+   - Updated `request-query.ts` and `mutation-query.ts` to return error responses instead of throwing
+   - Added validation to prevent both `baseURL` and `url` being set simultaneously
+3. ✅ **Code Cleanup**:
+   - Refactored baseURL/url handling in `engine.ts` for better clarity
+   - Removed debug console.log statements
 
 ### Missing Features
 1. **No Test Suite**: No automated tests configured
@@ -320,12 +325,13 @@ Reference docs for deeper topics live in `references/`:
 
 ## Git Information
 
-- **Current Branch**: main
+- **Current Branch**: bug-fixes
 - **Main Branch**: main (use for PRs)
-- **Latest Commit**: 9d96dc0 "Updated"
+- **Latest Commit**: 65223ea "Add project documentation and fix critical bugs"
+- **Previous Commit**: 9d96dc0 "Updated"
 
 ## Summary
 
 Fetchfully is a well-architected, type-safe HTTP client that strikes a good balance between simplicity and functionality. The codebase is clean, modular, and follows solid separation of concerns. At under 900 lines, it remains lightweight while providing significant value over the native Fetch API.
 
-The library demonstrates good TypeScript practices, thoughtful API design focused on developer experience, and a clear architectural vision. With the addition of tests and fixing the identified bugs, it would be production-ready for most use cases.
+The library demonstrates good TypeScript practices, thoughtful API design focused on developer experience, and a clear architectural vision. Critical bugs identified during initial analysis have been fixed in the `bug-fixes` branch. With the addition of automated tests, the library would be production-ready for most use cases.
