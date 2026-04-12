@@ -40,10 +40,19 @@ export default async function requestQuery(
       refetch
     );
   } else {
-    throw new HttpError(
-      response.status,
+    const error = new HttpError(
+      originResponse.status,
       originResponse.statusText,
       originResponse.url
+    );
+
+    response = fetchfullyResponse(
+      "error",
+      null,
+      error,
+      originResponse.status,
+      originResponse.headers,
+      refetch
     );
   }
 

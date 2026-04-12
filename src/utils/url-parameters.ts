@@ -92,7 +92,7 @@ export function constructUrl(
       queryOptions.query,
       queryOptions.queryArrayFormat
     );
-    return urlWithPaths ? `${urlWithPaths}/${queryString}` : cleanBaseUrl;
+    return urlWithPaths ? `${urlWithPaths}${queryString}` : cleanBaseUrl;
   }
 
   return urlWithPaths ? urlWithPaths : cleanBaseUrl;

@@ -65,25 +65,22 @@ export function createFetch(
       }
     }
 
+    if (config.baseURL && config.url) {
+      throw new Error(
+        "Fetchfully: cannot set both 'baseURL' and 'url'. Use 'baseURL' with 'path' for path segments, or 'url' for a full URL."
+      );
+    }
+
     try {
       if (config.timeout) {
         timeoutID = setTimeout(() => abortRequest.abort(), config.timeout);
       }
 
-      let fullUrl = constructUrl(
-        config.url || "",
-        config.path,
-        requestQueryParameter
-      );
+      const baseUrl = config.baseURL
+        ? config.baseURL.replace(/\/+$/, "")
+        : config.url ?? "";
 
-      //  Check for base URL, remove extra slash and append sub url
-      if (config.baseURL) {
-        fullUrl = constructUrl(
-          `${config.baseURL.replace(/\/+$/, "")}`,
-          config.path,
-          requestQueryParameter
-        );
-      }
+      const fullUrl = constructUrl(baseUrl, config.path, requestQueryParameter);
 
       const originResponse = await fetch(fullUrl, fetchConfig);
 
