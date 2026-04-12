@@ -27,19 +27,37 @@ export default async function mutationQuery(
 
   // Server error
   if (originResponse.status > 499 && originResponse.status <= 599) {
-    throw new HttpError(
+    const error = new HttpError(
       originResponse.status,
       originResponse.statusText,
       originResponse.url
+    );
+
+    return fetchfullyResponse(
+      "error",
+      null,
+      error,
+      originResponse.status,
+      originResponse.headers,
+      refetch
     );
   }
 
   // Client error
   if (originResponse.status > 399 && originResponse.status <= 499) {
-    throw new HttpError(
+    const error = new HttpError(
       originResponse.status,
       originResponse.statusText,
       originResponse.url
+    );
+
+    return fetchfullyResponse(
+      "error",
+      null,
+      error,
+      originResponse.status,
+      originResponse.headers,
+      refetch
     );
   }
 
@@ -72,8 +90,6 @@ export default async function mutationQuery(
    */
   if (originResponse.status === 204 || originResponse.status === 304) {
     const data = await filterByContentType(originResponse);
-
-    console.log(data);
 
     response = fetchfullyResponse(
       "success",
