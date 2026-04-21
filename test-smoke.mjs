@@ -246,6 +246,20 @@ await run("16. Response shape", async () => {
   assert("refetch" in res, "has refetch");
 });
 
+await run("17. Request cancellation via AbortSignal", async () => {
+  const fetcher = Fetchfully.create({ baseURL: BASE });
+  const controller = new AbortController();
+
+  const res = await fetcher({ method: "GET", path: "/posts", signal: controller.signal });
+
+  // Abort before the request can complete
+  setTimeout(() => controller.abort(), 0);
+
+  assert(res.isError === true, "isError is true");
+  assert(res.error?.name === "CancelError", "error is CancelError");
+  assert(res.data === null, "data is null");
+});
+
 // ---------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------
