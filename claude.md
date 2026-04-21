@@ -4,7 +4,7 @@
 
 **Fetchfully** is a lightweight TypeScript HTTP client library that enhances the native JavaScript Fetch API with developer-friendly features and better defaults.
 
-- **Version**: 1.6.0
+- **Version**: 1.6.1
 - **License**: MIT
 - **Repository**: https://github.com/romeopeter/fetchfully
 - **Author**: Romeo Agbor Peter
