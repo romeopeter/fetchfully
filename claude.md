@@ -23,6 +23,7 @@ The native Fetch API is powerful but verbose and lacks convenient features. Fetc
 6. Better error handling with custom error types
 7. Global and instance-level configuration
 8. Convenient HTTP method shortcuts
+9. Request cancellation via external AbortSignal
 
 ## Architecture
 
@@ -139,6 +140,7 @@ await response.refetch({ params: { page: 2 } }) // Override params
 - `HttpError`: Non-2xx HTTP responses
 - `CorsError`: Cross-origin request issues
 - `TimeoutError`: Request exceeded timeout duration
+- `CancelError`: Request aborted via external signal
 
 ### 8. Timeout Support
 Uses AbortController to enforce request timeouts:
@@ -146,13 +148,24 @@ Uses AbortController to enforce request timeouts:
 fetcher.get({ url: '/users', timeout: 5000 }) // 5 seconds
 ```
 
+### 9. Request Cancellation
+Pass an external `AbortSignal` to cancel an in-flight request. The response shape stays identical — no destructuring required:
+```typescript
+const controller = new AbortController()
+fetcher.get({ url: '/users', signal: controller.signal })
+
+// Cancel from anywhere (e.g. component unmount, route change)
+controller.abort() // response.error will be a CancelError
+```
+Works independently of, and alongside, the `timeout` option.
+
 ## Core Modules
 
 ### `engine.ts` (The Heart)
 - `createFetch()`: Main factory function
 - Merges configuration hierarchy
 - Constructs full URLs with path/query parameters
-- Implements AbortController for timeouts
+- Implements internal AbortController for timeouts; chains external `signal` from config
 - Delegates to `requestQuery` or `mutationQuery` based on HTTP method
 - Attaches consumable HTTP methods
 - Comprehensive error handling
@@ -252,15 +265,13 @@ npm run build  # Build for production
 
 ### Missing Features
 1. **No Test Suite**: No automated tests configured
-2. **Cancel Method**: Typed in response interface but not implemented
-3. **Retry Logic**: Partially typed but not implemented
+2. **Retry Logic**: Partially typed but not implemented
 
 ### Suggested Improvements
 1. Add test framework (Vitest would integrate well with Vite)
-2. Implement proper request cancellation
-3. Add retry logic with exponential backoff
-4. Add request/response interceptors
-5. Add progress tracking for uploads/downloads
+2. Add retry logic with exponential backoff
+3. Add request/response interceptors
+4. Add progress tracking for uploads/downloads
 
 ## Working with the Codebase
 
@@ -287,7 +298,7 @@ Each level deep-merges with previous levels (via `mergeConfig` utility).
 ```
 Fetch Error → Check Error Type:
   - TypeError → NetworkError or CorsError
-  - AbortError → TimeoutError
+  - AbortError → CancelError (caller's signal) or TimeoutError (internal timeout)
   - Non-2xx status → HttpError
 ```
 
@@ -327,8 +338,8 @@ Reference docs for deeper topics live in `references/`:
 
 - **Current Branch**: bug-fixes
 - **Main Branch**: main (use for PRs)
-- **Latest Commit**: 65223ea "Add project documentation and fix critical bugs"
-- **Previous Commit**: 9d96dc0 "Updated"
+- **Latest Commit**: 50e99f9 "Can now abort request"
+- **Previous Commit**: 2e7b853 "v1.6.1"
 
 ## Summary
 
