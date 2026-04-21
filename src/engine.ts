@@ -6,6 +6,7 @@ import {
   NetworkError,
   CorsError,
   TimeoutError,
+  CancelError,
   HttpError,
 } from "./utils/custom-request-errors";
 import fetchfullyResponse from "./response";
@@ -31,8 +32,15 @@ export function createFetch(
     initConfig: FetchfullyConfig
   ): Promise<FetchfullyResponse> {
     const config = mergeConfig(factoryConfig, initConfig);
-    const abortRequest = new AbortController(); // Controller object to abort request
+    const internalController = new AbortController();
     let timeoutID; // ID to terminate timeout object created by setTimeout().
+
+    // Forward cancellation from the caller's signal to our internal controller
+    if (config.signal) {
+      config.signal.addEventListener("abort", () =>
+        internalController.abort(config.signal?.reason)
+      );
+    }
 
     // Re-execute request with the same config
     const refetch = (override?: Partial<FetchfullyConfig>) =>
@@ -50,7 +58,7 @@ export function createFetch(
       credentials: config.credentials,
       keepalive: config.keepalive,
       mode: config.mode,
-      signal: abortRequest.signal,
+      signal: internalController.signal,
     };
 
     if (config.body && config.method !== "GET") {
@@ -73,7 +81,7 @@ export function createFetch(
 
     try {
       if (config.timeout) {
-        timeoutID = setTimeout(() => abortRequest.abort(), config.timeout);
+        timeoutID = setTimeout(() => internalController.abort(), config.timeout);
       }
 
       const baseUrl = config.baseURL
@@ -132,11 +140,14 @@ export function createFetch(
       }
 
       if (error.name === "AbortError") {
-        const timeoutError = new TimeoutError("Request timed out");
+        // Caller's signal aborted → cancellation; otherwise → timeout
+        const abortError = config.signal?.aborted
+          ? new CancelError("Request cancelled")
+          : new TimeoutError("Request timed out");
         return fetchfullyResponse(
           "error",
           null,
-          timeoutError,
+          abortError,
           undefined,
           undefined,
           refetch

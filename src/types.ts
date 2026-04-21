@@ -24,6 +24,7 @@ export type FetchfullyConfig = {
   keepalive?: boolean;
   mode?: "same-origin" | "cors" | "no-cors";
   timeout?: number;
+  signal?: AbortSignal;
   queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
   retries?: number;
   // retryDelay?: number;
