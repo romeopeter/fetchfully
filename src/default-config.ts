@@ -10,6 +10,8 @@ export const defaultConfig: FetchfullyConfig = {
   mode: "cors",
   queryArrayFormat: "comma",
   timeout: 0,
+  retries: 0,
+  retryDelay: 1000,
   headers: {
     "Content-Type": "application/json",
     "Cache-Control": "no-cache",

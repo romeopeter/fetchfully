@@ -250,14 +250,34 @@ await run("17. Request cancellation via AbortSignal", async () => {
   const fetcher = Fetchfully.create({ baseURL: BASE });
   const controller = new AbortController();
 
-  const res = await fetcher({ method: "GET", path: "/posts", signal: controller.signal });
+  // Pre-abort so the signal is already aborted when passed — deterministic regardless of network speed
+  controller.abort();
 
-  // Abort before the request can complete
-  setTimeout(() => controller.abort(), 0);
+  const res = await fetcher({ method: "GET", path: "/posts", signal: controller.signal });
 
   assert(res.isError === true, "isError is true");
   assert(res.error?.name === "CancelError", "error is CancelError");
   assert(res.data === null, "data is null");
+});
+
+await run("18. Retry on timeout", async () => {
+  let attempts = 0;
+  const originalFetch = globalThis.fetch;
+
+  // Intercept fetch to count how many times it is called
+  globalThis.fetch = async (...args) => {
+    attempts++;
+    return originalFetch(...args);
+  };
+
+  const fetcher = Fetchfully.create({ baseURL: BASE, timeout: 1, retries: 2, retryDelay: 50 });
+  const res = await fetcher.get("/posts");
+
+  globalThis.fetch = originalFetch;
+
+  assert(res.isError === true, "isError is true after retries exhausted");
+  assert(res.error?.name === "TimeoutError", "final error is TimeoutError");
+  assert(attempts === 3, `fetch called 3 times (1 initial + 2 retries), got ${attempts}`);
 });
 
 // ---------------------------------------------------------------

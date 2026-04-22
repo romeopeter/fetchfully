@@ -27,7 +27,7 @@ export type FetchfullyConfig = {
   signal?: AbortSignal;
   queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
   retries?: number;
-  // retryDelay?: number;
+  retryDelay?: number;
   whenSuccessful?: (data: any) => void;
   whenFailed?: (data: Error) => void;
   whenDone?: (data: any, Error: null | Error) => void;
