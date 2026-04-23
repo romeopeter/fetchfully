@@ -59,3 +59,14 @@ export class TimeoutError extends Error {
     }
   }
 }
+
+export class CancelError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CancelError";
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, CancelError);
+    }
+  }
+}
