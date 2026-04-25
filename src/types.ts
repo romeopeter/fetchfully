@@ -59,32 +59,52 @@ export type FetchfullyResponse<T = any> = {
 export interface RequestMethods {
   get<T = any>(
     path: string,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): Promise<FetchfullyResponse<T>>;
   post<T = any>(
     path: string,
     data?: any,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): Promise<FetchfullyResponse<T>>;
   put<T = any>(
     path: string,
     data?: any,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): Promise<FetchfullyResponse<T>>;
   patch<T = any>(
     path: string,
     data?: any,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): Promise<FetchfullyResponse<T>>;
   delete<T = any>(
     path: string,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): Promise<FetchfullyResponse<T>>;
 }
+
+// Interrupts (network interceptors) types
+export type RequestInterruptHandler = (
+  config: FetchfullyConfig,
+) => FetchfullyConfig | Promise<FetchfullyConfig>;
+
+export type ResponseInterruptHandlers<T = any> = {
+  onFulfilled?: (
+    response: FetchfullyResponse<T>,
+  ) => FetchfullyResponse<T> | Promise<FetchfullyResponse<T>>;
+  onRejected?: (
+    response: FetchfullyResponse<T>,
+  ) => FetchfullyResponse<T> | Promise<FetchfullyResponse<T>>;
+};
+
+export type Interrupts = {
+  request: import("./interrupts").RequestInterruptStack<RequestInterruptHandler>;
+  response: import("./interrupts").ResponseInterruptStack;
+};
 
 // Fetchfully instance structure
 export interface FetchfullyInstance extends RequestMethods {
   (config: FetchfullyConfig): Promise<any>;
   defaults: FetchfullyConfig;
   create: (config?: FetchfullyConfig) => FetchfullyInstance;
+  interrupts: Interrupts;
 }
