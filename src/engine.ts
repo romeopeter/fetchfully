@@ -6,6 +6,7 @@ import {
   NetworkError,
   CorsError,
   TimeoutError,
+  CancelError,
   HttpError,
 } from "./utils/custom-request-errors";
 import fetchfullyResponse from "./response";
@@ -40,41 +41,13 @@ export function createFetch(
     const merged = mergeConfig(factoryConfig, initConfig);
     const config = await runRequestInterrupts(merged, interrupts.request);
 
-    // AbortController for request cancellation and timeout handling
-    const abortRequest = new AbortController();
-    let timeoutID: ReturnType<typeof setTimeout> | undefined;
-
-    const refetch = (override?: Partial<FetchfullyConfig>) => {
-      return  fetcher({ ...initConfig, ...override });
-    }
-
-    // The final result of the fetch operation.
-    let result: FetchfullyResponse;
+    const refetch = (override?: Partial<FetchfullyConfig>) =>
+      fetcher({ ...initConfig, ...override });
 
     const requestQueryParameter = {
       query: config.query,
       queryArrayFormat: config.queryArrayFormat,
     };
-
-    const fetchConfig: RequestInit = {
-      method: config.method,
-      body: undefined,
-      headers: config.headers,
-      credentials: config.credentials,
-      keepalive: config.keepalive,
-      mode: config.mode,
-      signal: abortRequest.signal,
-    };
-
-    if (config.body && config.method !== "GET") {
-      if (config.body instanceof FormData) {
-        fetchConfig.body = config.body;
-      } else if (typeof config.body === "string") {
-        fetchConfig.body = config.body;
-      } else {
-        fetchConfig.body = JSON.stringify(config.body);
-      }
-    }
 
     if (config.baseURL && config.url) {
       throw new Error(
@@ -82,51 +55,127 @@ export function createFetch(
       );
     }
 
-    try {
-      if (config.timeout) {
-        timeoutID = setTimeout(() => abortRequest.abort(), config.timeout);
+    const maxRetries = config.retries ?? 0;
+    const retryDelay = config.retryDelay ?? 1000;
+
+    let result: FetchfullyResponse | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      // Fresh controller per attempt — aborted controllers cannot be reused
+      const internalController = new AbortController();
+      let timeoutID: ReturnType<typeof setTimeout> | undefined;
+
+      if (config.signal) {
+        if (config.signal.aborted) {
+          internalController.abort(config.signal.reason);
+        } else {
+          config.signal.addEventListener("abort", () =>
+            internalController.abort(config.signal?.reason)
+          );
+        }
       }
 
-      const baseUrl = config.baseURL
-        ? config.baseURL.replace(/\/+$/, "")
-        : config.url ?? "";
+      const fetchConfig: RequestInit = {
+        method: config.method,
+        body: undefined,
+        headers: config.headers,
+        credentials: config.credentials,
+        keepalive: config.keepalive,
+        mode: config.mode,
+        signal: internalController.signal,
+      };
 
-      const fullUrl = constructUrl(baseUrl, config.path, requestQueryParameter);
+      if (config.body && config.method !== "GET") {
+        if (config.body instanceof FormData) {
+          fetchConfig.body = config.body;
+        } else if (typeof config.body === "string") {
+          fetchConfig.body = config.body;
+        } else {
+          fetchConfig.body = JSON.stringify(config.body);
+        }
+      }
 
-      const originResponse = await fetch(fullUrl, fetchConfig);
+      try {
+        if (config.timeout) {
+          timeoutID = setTimeout(() => internalController.abort(), config.timeout);
+        }
 
-      result =
-        config.method !== "GET"
-          ? await mutationQuery(originResponse, refetch)
-          : await requestQuery(originResponse, refetch);
-    } catch (error: any) {
-      let fetchError: Error;
+        const baseUrl = config.baseURL
+          ? config.baseURL.replace(/\/+$/, "")
+          : config.url ?? "";
 
-      if (error instanceof TypeError) {
-        if (
-          error.message.includes("CORS") ||
-          error.message.includes("cross-origin")
-        ) {
-          fetchError = new CorsError("CORS error occurred");
-        } else if (error.message.includes("fetch failed")) {
-          fetchError = new NetworkError("Network error occurred");
+        const fullUrl = constructUrl(baseUrl, config.path, requestQueryParameter);
+
+        const originResponse = await fetch(fullUrl, fetchConfig);
+
+        result =
+          config.method !== "GET"
+            ? await mutationQuery(originResponse, refetch)
+            : await requestQuery(originResponse, refetch);
+
+        break; // success — exit retry loop, response interrupts will run below
+      } catch (error: any) {
+        let fetchError: Error;
+        let retryable = false;
+
+        if (error instanceof TypeError) {
+          if (
+            error.message.includes("CORS") ||
+            error.message.includes("cross-origin")
+          ) {
+            fetchError = new CorsError("CORS error occurred");
+          } else if (error.message.includes("fetch failed")) {
+            fetchError = new NetworkError("Network error occurred");
+            retryable = true;
+          } else {
+            fetchError = error;
+          }
+        } else if (error.name === "AbortError") {
+          if (config.signal?.aborted) {
+            // User cancelled — never retry
+            fetchError = new CancelError("Request cancelled");
+          } else {
+            fetchError = new TimeoutError("Request timed out");
+            retryable = true;
+          }
+        } else if (error instanceof HttpError) {
+          fetchError = error;
         } else {
           fetchError = error;
         }
-      } else if (error.name === "AbortError") {
-        fetchError = new TimeoutError("Request timed out");
-      } else if (error instanceof HttpError) {
-        fetchError = error;
-      } else {
-        fetchError = error;
-      }
 
-      result = fetchfullyResponse("error", null, fetchError, undefined, undefined, refetch);
-    } finally {
-      clearTimeout(timeoutID);
+        if (retryable && attempt < maxRetries) {
+          await new Promise<void>((resolve) => setTimeout(resolve, retryDelay));
+          continue;
+        }
+
+        result = fetchfullyResponse(
+          "error",
+          null,
+          fetchError,
+          undefined,
+          undefined,
+          refetch
+        );
+        break;
+      } finally {
+        clearTimeout(timeoutID);
+      }
     }
 
-    return runResponseInterrupts(result!, interrupts.response);
+    // Unreachable at runtime — `result` is always set inside the loop
+    if (!result) {
+      result = fetchfullyResponse(
+        "error",
+        null,
+        new NetworkError("Request failed"),
+        undefined,
+        undefined,
+        refetch
+      );
+    }
+
+    return runResponseInterrupts(result, interrupts.response);
   }
 
   fetcher.defaults = factoryConfig;

@@ -24,6 +24,8 @@ The native Fetch API is powerful but verbose and lacks convenient features. Fetc
 7. Global and instance-level configuration
 8. Convenient HTTP method shortcuts
 9. Request/response interrupts (per-instance, with eject support)
+10. Request cancellation via external AbortSignal
+11. Automatic retry on network and timeout errors (fixed delay)
 
 ## Architecture
 
@@ -146,6 +148,7 @@ await response.refetch({ params: { page: 2 } }) // Override params
 - `HttpError`: Non-2xx HTTP responses
 - `CorsError`: Cross-origin request issues
 - `TimeoutError`: Request exceeded timeout duration
+- `CancelError`: Request aborted via external signal
 
 ### 8. Timeout Support
 Uses AbortController to enforce request timeouts:
@@ -177,6 +180,24 @@ const eject = fetcher.interrupts.request.use(handler)
 eject()
 ```
 
+### 10. Request Cancellation
+Pass an external `AbortSignal` to cancel an in-flight request. The response shape stays identical — no destructuring required:
+```typescript
+const controller = new AbortController()
+fetcher({ url: '/users', signal: controller.signal })
+
+// Cancel from anywhere (e.g. component unmount, route change)
+controller.abort() // response.error will be a CancelError
+```
+Works independently of, and alongside, the `timeout` option.
+
+### 11. Retry on Network/Timeout
+Configure `retries` and `retryDelay` to retry transient failures with a fixed delay:
+```typescript
+fetcher.get({ url: '/users', retries: 3, retryDelay: 500 })
+```
+Retries only on `NetworkError` and `TimeoutError`. `CancelError`, `CorsError`, and `HttpError` are never retried.
+
 ## Core Modules
 
 ### `engine.ts` (The Heart)
@@ -184,7 +205,7 @@ eject()
 - Creates per-instance `InterruptStack` for request and response
 - Merges configuration hierarchy, then pipes config through request interrupts
 - Constructs full URLs with path/query parameters
-- Implements AbortController for timeouts
+- Implements internal AbortController for timeouts; chains external `signal` from config
 - Delegates to `requestQuery` or `mutationQuery` based on HTTP method
 - Pipes final response through response interrupts before returning
 - Attaches consumable HTTP methods and `interrupts` to the instance
@@ -295,15 +316,11 @@ npm run build  # Build for production
    - Response interrupt routes on `isError` — no throwing required
 
 ### Missing Features
-1. **No Test Suite**: No automated tests configured (smoke tests exist in `test/`)
-2. **Cancel Method**: Typed in response interface but not implemented
-3. **Retry Logic**: Partially typed but not implemented
+1. **No Formal Test Suite**: No test framework configured (smoke tests exist in `test/`)
 
 ### Suggested Improvements
 1. Add test framework (Vitest would integrate well with Vite)
-2. Implement proper request cancellation (via external AbortSignal — no destructuring)
-3. Add retry logic with fixed delay (developer tool, not customer-facing)
-4. Add progress tracking for uploads/downloads
+2. Add progress tracking for uploads/downloads
 
 ## Working with the Codebase
 
@@ -330,7 +347,7 @@ Each level deep-merges with previous levels (via `mergeConfig` utility).
 ```
 Fetch Error → Check Error Type:
   - TypeError → NetworkError or CorsError
-  - AbortError → TimeoutError
+  - AbortError → CancelError (caller's signal) or TimeoutError (internal timeout)
   - Non-2xx status → HttpError
 ```
 
@@ -370,8 +387,7 @@ Reference docs for deeper topics live in `references/`:
 
 - **Current Branch**: middleware
 - **Main Branch**: main (use for PRs)
-- **Latest Commit**: 2e7b853 "v1.6.1"
-- **Previous Commit**: 7062789 "Update claude.md to reflect fixed critical bugs"
+- **Latest Commit**: pending merge of `main` into `middleware`
 
 ## Summary
 
