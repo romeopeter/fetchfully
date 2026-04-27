@@ -4,69 +4,72 @@
 
 <br />
 
-**Fetchfully** wraps the JavaScript Fetch API with additional functionalities for simplicity and efficiency. It's the Javascript Fetch API with Power Pack ⚡️
+**Fetchfully** wraps the JavaScript Fetch API with additional functionalities for simplicity and efficiency. It's the JavaScript Fetch API with Power Pack ⚡️
 
 ---
 
 ## Features
 
-- **Object-first data fetching**: Supply all init config as object, improving code clarity.
-- **In-built request Logic**: Automatically handles responses based on content type.
-- **Parses JSON payload**: Parses mutation request payload as JSON.
-- **Simple path and query parameters**: Work better with URL parameters. Pass path and query parameter as object value. Tweak query parameters delimiter in config.
-- **Global config and instances**: Create different instances that use a global config or override it with instance-specific config.
-- **Consumable request method**: Use consumable methods for ergonomic common HTTP requests.
-- **Request status**: Monitor request status for loading, failed and successful network request states.
-- **Refetch request**: Easily make refetch without reconstructing request config.
-- **Fully Type**: Use Typescript and exports all necessary types for easy configuration
+- **Object-first data fetching**: Supply all request config as an object for clarity.
+- **Automatic response parsing**: Handles responses based on Content-Type automatically.
+- **Parses JSON payload**: Serializes mutation request bodies as JSON.
+- **Simple path and query parameters**: Pass path and query parameters as object values. Tweak query array formatting in config.
+- **Global config and instances**: Create independent instances that share a global config or override it with instance-specific config.
+- **Consumable request methods**: Ergonomic shortcuts for common HTTP requests.
+- **Request status**: Monitor loading, success, and error states on every response.
+- **Refetch**: Re-run a request without reconstructing its config.
+- **Interrupts**: Register request and response interrupt handlers per instance, with eject support.
+- **Fully typed**: Written in TypeScript with all necessary types exported.
 
 ---
 
 ## Installation
 
-Install the package using npm or yarn:
-
 ```bash
 npm install fetchfully
 ```
 
+## Imports
+
+```javascript
+import { Fetchfully } from "fetchfully";
+// or
+import { Http } from "fetchfully"; // Http is an alias for Fetchfully
+```
+
+---
+
 ## How To Use
 
-### Basic request with default instance
+_NOTE: The API endpoints below are for demonstration purposes only. Test on live endpoints for expected results._
 
-_NOTE: The API endpoints below are for demonstration purposes only. Test on live endpoints for expected result._
-
-##### 1. Normal request
+### Basic request
 
 ```javascript
-import fetcher from "fetchfully";
+import { Fetchfully } from "fetchfully";
 
-await fetcher({ url: "https://api.example.com/posts" });
+await Fetchfully({ url: "https://api.example.com/posts" });
 ```
 
-##### 2. With path string
+### With path segments
 
 ```javascript
-await fetcher({
+// String path
+await Fetchfully({
   url: "https://api.example.com",
-  path: "posts1/comments",
+  path: "posts/1/comments",
 });
+// URL: https://api.example.com/posts/1/comments
 
-// URL results in: https://api.example.com/posts/1/commments
-```
-
-##### 3. With array of path segments
-
-```javascript
-await fetcher({
+// Array of path segments
+await Fetchfully({
   url: "https://api.example.com",
   path: ["posts", "1", "comments"],
 });
-
-// URL results in: https://api.example.com/posts/1/commments
+// URL: https://api.example.com/posts/1/comments
 ```
 
-##### 4. With query parameters
+### With query parameters
 
 ```javascript
 const query = {
@@ -76,230 +79,252 @@ const query = {
   size: "large",
 };
 
-await fetcher({
-  url: "https://api.example.com",
+await Fetchfully({
+  url: "https://api.example.com/posts",
   query,
-  queryArrayFormat = "comma",
+  queryArrayFormat: "comma",
 });
-
-// URL results in: https://api.example.com/comments?page=1&limit=10&colors=red,blue&size=large
+// URL: https://api.example.com/posts?page=1&limit=10&colors=red,blue&size=large
 ```
 
-### Mutation request (POST, PUT, PATCH and DELETE)
+---
 
-##### 1. POST request
+## Mutation Requests (POST, PUT, PATCH, DELETE)
 
 ```javascript
-await fetcher({
-  url: "https://api.example.com/post",
+// POST
+await Fetchfully({
+  url: "https://api.example.com/posts",
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: {
-    title: "foo",
-    body: "bar",
-    userId: 1,
-  },
+  headers: { "Content-Type": "application/json" },
+  body: { title: "foo", body: "bar", userId: 1 },
 });
-```
 
-##### 2. PUT request
-
-```javascript
-await fetcher({
-  url: "https://api.example.com/post",
+// PUT
+await Fetchfully({
+  url: "https://api.example.com/posts/1",
   method: "PUT",
-  headers: {
-    Authorization: "Bearer token",
-    "Content-Type": "application/json",
-  },
-  body: {
-    id: 1,
-    title: "foo",
-    body: "bar",
-    userId: 1,
-  },
+  headers: { Authorization: "Bearer token", "Content-Type": "application/json" },
+  body: { id: 1, title: "foo", body: "bar", userId: 1 },
 });
-```
 
-##### 3. PATCH request
-
-```javascript
-await fetcher({
-  url: "https://api.example.com/post/1",
+// PATCH
+await Fetchfully({
+  url: "https://api.example.com/posts/1",
   method: "PATCH",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
   body: { title: "bar" },
 });
+
+// DELETE
+await Fetchfully({ url: "https://api.example.com/posts/1", method: "DELETE" });
 ```
 
-##### 4. Delete request
+---
 
-```javascript
-await fetcher({ url: "https://api.example.com/post/1", method: "DELETE" });
-```
-
-## Fetchfully Configuration
-
-When initializing `Fetchfully`, you can pass the following options:
-
-### Base options
+## Configuration Options
 
 | Option             | Type                                          | Description                                        |
 | ------------------ | --------------------------------------------- | -------------------------------------------------- |
-| `baseUrl`          | `String`                                      | Base URL for all requests.                         |
-| `path`             | `string \| string[] \| undefined`             | URL path segments.                                 |
-| `query`            | `string \| string[] \| undefined`             | URL query parameters.                              |
-| `method`           | `string`                                      | Request action method.                             |
-| `body`             | `string \| undefined`                         | Request payload.                                   |
+| `baseURL`          | `string`                                      | Base URL for all requests.                         |
+| `url`              | `string`                                      | Full URL for a single request (mutually exclusive with `baseURL`). |
+| `path`             | `string \| string[]`                          | URL path segments appended to `baseURL`.           |
+| `query`            | `Record<string, any>`                         | URL query parameters.                              |
+| `method`           | `"GET" \| "POST" \| "PUT" \| "PATCH" \| "DELETE"` | HTTP method. Defaults to `"GET"`.             |
+| `body`             | `string \| FormData \| Blob \| ArrayBuffer`   | Request payload.                                   |
+| `headers`          | `RequestHeaders`                              | Request headers.                                   |
 | `credentials`      | `"same-origin" \| "omit" \| "include"`        | Request credentials.                               |
-| `keepalive`        | `boolean`                                     | Persist requests request connection.               |
-| `mode`             | `"same-origin" \| "cors" \| "no-cors"`        | Request CORS mode.                                 |
-| `timeout`          | `number`                                      | Time as milliseconds before terminating request.   |
-| `queryArrayFormat` | `"brackets" \| "comma" \| "repeat" \| "none"` | Indicates how parameter array should be formatted. |
+| `keepalive`        | `boolean`                                     | Keep connection alive after page unload.           |
+| `mode`             | `"same-origin" \| "cors" \| "no-cors"`        | CORS mode.                                         |
+| `timeout`          | `number`                                      | Milliseconds before the request is aborted.        |
+| `queryArrayFormat` | `"brackets" \| "comma" \| "repeat" \| "none"` | How array query params are serialized.             |
 
-## Fetchfully Instance
+---
 
-Create new instance of Fetchfully with independent custom configurations with the `fetcher.create()` factory method.
+## Instances
+
+Create independent instances with their own config using `Fetchfully.create()`.
 
 ```javascript
-import fetcher from "fetchfully";
+import { Fetchfully } from "fetchfully";
 
-// api/auth
-const authAPI = fetchfully.create({
-  baseUrl: "https://api.example.com/auth",
+const authAPI = Fetchfully.create({
+  baseURL: "https://api.example.com/auth",
   timeout: 5000,
 });
 
-// api/users
-const userAPI = fetcher.create({
-  baseURL: "https://api.example.com/user",
-  headers: {
-    "Cache-Control": "no-cache",
-  },
+const userAPI = Fetchfully.create({
+  baseURL: "https://api.example.com/users",
+  headers: { "Cache-Control": "no-cache" },
 });
 
-// api/analytics
-const analyticsAPI = fetcher.create({
+const analyticsAPI = Fetchfully.create({
   baseURL: "https://api.example.com/analytics",
-  timeout: 5000,
+  timeout: 10000,
 });
 ```
 
-## Fetchfully Default Config
+---
 
-Create a global config that will persist across all requests
+## Global Defaults
 
-##### Global default
+Set defaults that apply to all requests on the default instance.
 
 ```javascript
-import fetcher from "fetchfully";
+import { Fetchfully } from "fetchfully";
 
-fetcher.defaults.baseUrl = "https://api.example.com";
-fetcher.defaults.timeout = 5000;
+Fetchfully.defaults.baseURL = "https://api.example.com";
+Fetchfully.defaults.timeout = 5000;
 ```
 
-##### Custom default by instance
+Instance-specific config always takes precedence over global defaults.
 
 ```javascript
-const customAPI = fetcher.create({
-  headers: {
-    Authorization: "Bearer token", // Instance specific authorization header
-  },
-  timeout: 2500, // Instance specific timeout.
+const customAPI = Fetchfully.create({
+  headers: { Authorization: "Bearer token" },
+  timeout: 2500, // overrides the global 5000ms for this instance only
 });
 
-// Use custom instance
-await customAPI({
-  path: "users",
-  query: { active: true }, // 'https://api.example.com/users?active=true
+await customAPI({ path: "users", query: { active: true } });
+// https://api.example.com/users?active=true
+```
+
+---
+
+## Consumable Methods
+
+Ergonomic shortcuts for common HTTP requests. Requires `baseURL` to be set.
+
+```javascript
+import { Fetchfully } from "fetchfully";
+
+Fetchfully.defaults.baseURL = "https://api.example.com";
+
+// GET
+await Fetchfully.get("/users");
+await Fetchfully.get("/users", { active: true }); // with query params
+
+// POST
+await Fetchfully.post("/users", { name: "John", email: "john@example.com" });
+
+// PUT
+await Fetchfully.put("/users/123", { name: "John Doe" });
+
+// PATCH
+await Fetchfully.patch("/users/123", { status: "active" });
+
+// DELETE
+await Fetchfully.delete("/users/123");
+```
+
+---
+
+## Timeout
+
+Abort a request automatically after a given number of milliseconds.
+
+```javascript
+const fetcher = Fetchfully.create({
+  baseURL: "https://api.example.com",
+  timeout: 5000, // 5 seconds
 });
+
+const res = await fetcher.get("/users");
+if (res.isError && res.error.name === "TimeoutError") {
+  console.error("Request timed out");
+}
 ```
 
-Instance specific configs take precedence over those in global default config. For instance, the `2500` (2.5 seconds) set above is specific to that instance alone.
+---
 
-## Consumable methods for ergonomic requests.
+## Refetch
 
-Use these ergonomic methods for common HTTP request.
-
-##### Set base URL
+Re-run a request with the same config, or override specific fields.
 
 ```javascript
-import fetcher from "fetchfully";
-
-fetcher.defaults.baseUrl = "https://api.example.com";
-```
-
-##### GET request
-
-```javascript
-// Using convenience methods
-await fetcher.get("users");
-await fetcher.get("users", { active: true }); // https://api.example.com/users?active=true
-```
-
-##### POST request
-
-```javascript
-await fetcher.post("users", {
-  name: "John",
-  email: "john@example.com",
-});
-```
-
-##### PUT request
-
-```javascript
-await fetcher.put("users/123", {
-  name: "John Doe",
-});
-```
-
-##### PATCH request
-
-```javascript
-await fetcher.patch("users/123", {
-  status: "active",
-});
-```
-
-##### PATCH request
-
-```javascript
-await fetcher.delete("users/123");
-```
-
-## Fetchfully Refetch
-
-The `refetch` method lets you re-run the exact same request with the same configuration to get fresh data without reconstructing entire request.
-
-```javascript
-// Example 1: Basic refetch
-const response = await fetchfully.get("/api/users");
+const fetcher = Fetchfully.create({ baseURL: "https://api.example.com" });
+const response = await fetcher.get("/users");
 
 if (response.isSuccess) {
-  console.log("Users:", response.data);
-
-  const freshResponse = await response.refetch?.();
-  console.log("Updated users:", freshResponse.data);
+  // Re-run with the exact same config
+  const fresh = await response.refetch();
+  console.log("Updated users:", fresh.data);
 }
-
-// Example 2: Refetch on user action
-const userResponse = await fetchfully.get("/api/user/123");
-
-const handleRefresh = async () => {
-  if (userResponse.refetch) {
-    const refreshed = await userResponse.refetch();
-    if (refreshed.isSuccess) {
-      setUser(refreshed.data); // Update UI with fresh data
-    }
-  }
-};
 ```
+
+---
+
+## Interrupts
+
+Register handlers that run before every request or after every response. Each `use()` call returns an eject function for cleanup.
+
+### Request interrupt
+
+Runs before the request fires. Use it to inject headers, add tracing, or modify the config.
+
+```javascript
+const fetcher = Fetchfully.create({ baseURL: "https://api.example.com" });
+
+const eject = fetcher.interrupts.request.use((config) => {
+  config.headers["Authorization"] = `Bearer ${getToken()}`;
+  return config;
+});
+
+// Remove the handler when no longer needed
+eject();
+```
+
+### Response interrupt
+
+Runs after every response. `onFulfilled` receives successful responses, `onRejected` receives error responses.
+
+```javascript
+fetcher.interrupts.response.use(
+  (response) => {
+    // transform or log successful responses
+    return response;
+  },
+  (response) => {
+    // handle errors globally
+    if (response.statusCode === 401) redirectToLogin();
+    return response;
+  }
+);
+```
+
+### Eject in React
+
+```javascript
+useEffect(() => {
+  const eject = fetcher.interrupts.request.use((config) => {
+    config.headers["Authorization"] = `Bearer ${token}`;
+    return config;
+  });
+  return eject; // removes the handler on unmount
+}, [token]);
+```
+
+---
+
+## Request Status
+
+Every response includes status indicators for easy conditional rendering.
+
+```javascript
+const res = await fetcher.get("/users");
+
+res.isIdle     // true when no request is in flight
+res.isLoading  // true while the request is pending
+res.isSuccess  // true on a successful response
+res.isError    // true on any error (network, timeout, HTTP error)
+res.status     // "idle" | "loading" | "success" | "error"
+res.statusCode // HTTP status code (e.g. 404)
+res.data       // response data, or null on error
+res.error      // Error instance, or null on success
+```
+
+---
 
 ## License
 
-This project is licensed under the MIT.
+This project is licensed under the MIT License.

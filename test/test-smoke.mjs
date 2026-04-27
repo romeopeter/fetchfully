@@ -7,7 +7,7 @@
  * Each test prints PASS/FAIL with a short description.
  */
 
-import { Fetchfully, Http } from "./dist/fetchfully.mjs";
+import { Fetchfully, Http } from "../dist/fetchfully.mjs";
 
 const BASE = "https://jsonplaceholder.typicode.com";
 

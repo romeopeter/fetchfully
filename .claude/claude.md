@@ -23,7 +23,9 @@ The native Fetch API is powerful but verbose and lacks convenient features. Fetc
 6. Better error handling with custom error types
 7. Global and instance-level configuration
 8. Convenient HTTP method shortcuts
-9. Request cancellation via external AbortSignal
+9. Request/response interrupts (per-instance, with eject support)
+10. Request cancellation via external AbortSignal
+11. Automatic retry on network and timeout errors (fixed delay)
 
 ## Architecture
 
@@ -37,9 +39,9 @@ The native Fetch API is powerful but verbose and lacks convenient features. Fetc
 ### Request/Response Lifecycle
 
 ```
-User Call → Config Merge → URL Construction → Fetch Execution →
-Response Handler → Content-Type Parsing → Status Wrapper →
-Return with Refetch Capability
+User Call → Config Merge → Request Interrupts → URL Construction →
+Fetch Execution → Response Handler → Content-Type Parsing →
+Status Wrapper → Response Interrupts → Return with Refetch Capability
 ```
 
 ### Project Structure
@@ -60,13 +62,19 @@ src/
 │   ├── request-headers-formatter.ts    # Header formatting
 │   └── url-parameters.ts               # URL construction utilities
 ├── default-config.ts           # Default configuration
-├── engine.ts                   # Core fetch engine (4.5KB - the heart of the library)
+├── engine.ts                   # Core fetch engine (the heart of the library)
 ├── fetchfully.ts               # Main instance creation
 ├── index.ts                    # Public exports
+├── interrupts.ts               # InterruptStack classes and runner functions
 ├── mutation-query.ts           # Mutation request handler (POST/PUT/PATCH/DELETE)
 ├── request-query.ts            # GET request handler
 ├── response.ts                 # Response object factory
 └── types.ts                    # TypeScript type definitions
+```
+
+```
+test/
+└── interrupts.smoke.mjs        # Smoke tests for the interrupt system
 ```
 
 ## Key Features
@@ -148,27 +156,65 @@ Uses AbortController to enforce request timeouts:
 fetcher.get({ url: '/users', timeout: 5000 }) // 5 seconds
 ```
 
-### 9. Request Cancellation
+### 9. Interrupts
+Per-instance request and response interrupts. Each `use()` call returns an eject function for cleanup.
+
+```typescript
+// Inject auth header on every request
+fetcher.interrupts.request.use((config) => {
+  config.headers['Authorization'] = `Bearer ${token}`
+  return config
+})
+
+// Handle 401 globally, transform data on success
+fetcher.interrupts.response.use(
+  (response) => response,                          // onFulfilled
+  (response) => {                                  // onRejected
+    if (response.statusCode === 401) redirectToLogin()
+    return response
+  }
+)
+
+// Eject when no longer needed (e.g. component unmount)
+const eject = fetcher.interrupts.request.use(handler)
+eject()
+```
+
+### 10. Request Cancellation
 Pass an external `AbortSignal` to cancel an in-flight request. The response shape stays identical — no destructuring required:
 ```typescript
 const controller = new AbortController()
-fetcher.get({ url: '/users', signal: controller.signal })
+fetcher({ url: '/users', signal: controller.signal })
 
 // Cancel from anywhere (e.g. component unmount, route change)
 controller.abort() // response.error will be a CancelError
 ```
 Works independently of, and alongside, the `timeout` option.
 
+### 11. Retry on Network/Timeout
+Configure `retries` and `retryDelay` to retry transient failures with a fixed delay:
+```typescript
+fetcher.get({ url: '/users', retries: 3, retryDelay: 500 })
+```
+Retries only on `NetworkError` and `TimeoutError`. `CancelError`, `CorsError`, and `HttpError` are never retried.
+
 ## Core Modules
 
 ### `engine.ts` (The Heart)
 - `createFetch()`: Main factory function
-- Merges configuration hierarchy
+- Creates per-instance `InterruptStack` for request and response
+- Merges configuration hierarchy, then pipes config through request interrupts
 - Constructs full URLs with path/query parameters
 - Implements internal AbortController for timeouts; chains external `signal` from config
 - Delegates to `requestQuery` or `mutationQuery` based on HTTP method
-- Attaches consumable HTTP methods
-- Comprehensive error handling
+- Pipes final response through response interrupts before returning
+- Attaches consumable HTTP methods and `interrupts` to the instance
+
+### `interrupts.ts`
+- `RequestInterruptStack`: generic stack with `use(handler) → eject`
+- `ResponseInterruptStack`: separate class; `use(onFulfilled?, onRejected?) → eject`
+- `runRequestInterrupts()`: pipes config through request handlers in order
+- `runResponseInterrupts()`: routes response to `onFulfilled` or `onRejected` based on `isError`
 
 ### `request-query.ts`
 Handles GET requests:
@@ -263,15 +309,18 @@ npm run build  # Build for production
    - Refactored baseURL/url handling in `engine.ts` for better clarity
    - Removed debug console.log statements
 
+### Recent Additions (middleware branch)
+1. ✅ **Request/Response Interrupts** (`src/interrupts.ts`):
+   - Per-instance `request` and `response` interrupt stacks
+   - `use()` returns eject function for cleanup
+   - Response interrupt routes on `isError` — no throwing required
+
 ### Missing Features
-1. **No Test Suite**: No automated tests configured
-2. **Retry Logic**: Partially typed but not implemented
+1. **No Formal Test Suite**: No test framework configured (smoke tests exist in `test/`)
 
 ### Suggested Improvements
 1. Add test framework (Vitest would integrate well with Vite)
-2. Add retry logic with exponential backoff
-3. Add request/response interceptors
-4. Add progress tracking for uploads/downloads
+2. Add progress tracking for uploads/downloads
 
 ## Working with the Codebase
 
@@ -336,10 +385,9 @@ Reference docs for deeper topics live in `references/`:
 
 ## Git Information
 
-- **Current Branch**: bug-fixes
+- **Current Branch**: middleware
 - **Main Branch**: main (use for PRs)
-- **Latest Commit**: 50e99f9 "Can now abort request"
-- **Previous Commit**: 2e7b853 "v1.6.1"
+- **Latest Commit**: pending merge of `main` into `middleware`
 
 ## Summary
 

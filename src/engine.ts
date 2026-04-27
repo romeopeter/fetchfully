@@ -12,6 +12,11 @@ import {
 import fetchfullyResponse from "./response";
 import { attachActionMethods } from "./consumable-methods";
 import {
+  createInterrupts,
+  runRequestInterrupts,
+  runResponseInterrupts,
+} from "./interrupts";
+import {
   type FetchfullyConfig,
   type FetchfullyResponse,
   type FetchfullyInstance,
@@ -28,10 +33,13 @@ import {
 export function createFetch(
   factoryConfig: FetchfullyConfig = {}
 ): Omit<FetchfullyInstance, "create"> {
+  const interrupts = createInterrupts();
+
   async function fetcher(
     initConfig: FetchfullyConfig
   ): Promise<FetchfullyResponse> {
-    const config = mergeConfig(factoryConfig, initConfig);
+    const merged = mergeConfig(factoryConfig, initConfig);
+    const config = await runRequestInterrupts(merged, interrupts.request);
 
     const refetch = (override?: Partial<FetchfullyConfig>) =>
       fetcher({ ...initConfig, ...override });
@@ -50,6 +58,8 @@ export function createFetch(
     const maxRetries = config.retries ?? 0;
     const retryDelay = config.retryDelay ?? 1000;
 
+    let result: FetchfullyResponse | undefined;
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       // Fresh controller per attempt — aborted controllers cannot be reused
       const internalController = new AbortController();
@@ -57,7 +67,6 @@ export function createFetch(
 
       if (config.signal) {
         if (config.signal.aborted) {
-          // Signal was already aborted before we registered — abort immediately
           internalController.abort(config.signal.reason);
         } else {
           config.signal.addEventListener("abort", () =>
@@ -99,12 +108,12 @@ export function createFetch(
 
         const originResponse = await fetch(fullUrl, fetchConfig);
 
-        // Mutation request
-        if (config.method !== "GET") {
-          return mutationQuery(originResponse, refetch);
-        }
+        result =
+          config.method !== "GET"
+            ? await mutationQuery(originResponse, refetch)
+            : await requestQuery(originResponse, refetch);
 
-        return requestQuery(originResponse, refetch);
+        break; // success — exit retry loop, response interrupts will run below
       } catch (error: any) {
         let fetchError: Error;
         let retryable = false;
@@ -140,7 +149,7 @@ export function createFetch(
           continue;
         }
 
-        return fetchfullyResponse(
+        result = fetchfullyResponse(
           "error",
           null,
           fetchError,
@@ -148,16 +157,29 @@ export function createFetch(
           undefined,
           refetch
         );
+        break;
       } finally {
         clearTimeout(timeoutID);
       }
     }
 
-    // Unreachable at runtime — satisfies TypeScript's return analysis on the for loop
-    return fetchfullyResponse("error", null, new NetworkError("Request failed"), undefined, undefined, refetch);
+    // Unreachable at runtime — `result` is always set inside the loop
+    if (!result) {
+      result = fetchfullyResponse(
+        "error",
+        null,
+        new NetworkError("Request failed"),
+        undefined,
+        undefined,
+        refetch
+      );
+    }
+
+    return runResponseInterrupts(result, interrupts.response);
   }
 
   fetcher.defaults = factoryConfig;
+  fetcher.interrupts = interrupts;
 
   return attachActionMethods(fetcher as FetchfullyInstance);
 }
