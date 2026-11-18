@@ -218,6 +218,39 @@ await Fetchfully.patch("/users/123", { status: "active" });
 await Fetchfully.delete("/users/123");
 ```
 
+Every shortcut takes an optional last argument for per-call options: anything in the config except `path`, `method`, `query`, and `body`, which come from the other arguments.
+
+```javascript
+const controller = new AbortController();
+
+await Fetchfully.get("/users", { active: true }, { signal: controller.signal });
+await Fetchfully.post("/users", newUser, undefined, { timeout: 3000, retries: 2 });
+await Fetchfully.delete("/users/123", undefined, { headers: { "X-Reason": "cleanup" } });
+```
+
+---
+
+## Errors
+
+Errors are returned on `res.error`, never thrown. Each failure type has its own exported class:
+
+| Class | When |
+|---|---|
+| `HttpError` | The server answered with a non-success status. Has `status`, `statusText`, and `URL`. |
+| `NetworkError` | The request never got a response (offline, DNS failure). |
+| `CorsError` | The browser blocked a cross-origin request. |
+| `TimeoutError` | The `timeout` elapsed first. |
+| `CancelError` | Your `signal` aborted the request. |
+
+```javascript
+import { Fetchfully, HttpError, TimeoutError } from "fetchfully";
+
+const res = await Fetchfully.get("/users/123");
+
+if (res.error instanceof HttpError && res.error.status === 404) showNotFound();
+else if (res.error instanceof TimeoutError) showRetryButton();
+```
+
 ---
 
 ## Timeout
@@ -231,7 +264,7 @@ const fetcher = Fetchfully.create({
 });
 
 const res = await fetcher.get("/users");
-if (res.isError && res.error.name === "TimeoutError") {
+if (res.error instanceof TimeoutError) {
   console.error("Request timed out");
 }
 ```

@@ -138,29 +138,43 @@ export type QueryFetcher<T = any> = (
   config: FetchfullyConfig,
 ) => Promise<FetchfullyResponse<T>>;
 
+/**
+ * Per-call options for the shortcut methods. `path`, `method`, `query`, and
+ * `body` come from the positional arguments, so they are not accepted here.
+ */
+export type RequestOptions = Omit<
+  FetchfullyConfig,
+  "path" | "method" | "query" | "body"
+>;
+
 export interface RequestMethods {
   get<T = any>(
     path: string,
     query?: Record<string, any>,
+    options?: RequestOptions,
   ): Promise<FetchfullyResponse<T>>;
   post<T = any>(
     path: string,
     data?: any,
     query?: Record<string, any>,
+    options?: RequestOptions,
   ): Promise<FetchfullyResponse<T>>;
   put<T = any>(
     path: string,
     data?: any,
     query?: Record<string, any>,
+    options?: RequestOptions,
   ): Promise<FetchfullyResponse<T>>;
   patch<T = any>(
     path: string,
     data?: any,
     query?: Record<string, any>,
+    options?: RequestOptions,
   ): Promise<FetchfullyResponse<T>>;
   delete<T = any>(
     path: string,
     query?: Record<string, any>,
+    options?: RequestOptions,
   ): Promise<FetchfullyResponse<T>>;
 }
 

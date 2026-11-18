@@ -17,7 +17,8 @@ function constructQueryString(
   const searchParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(query)) {
-    if (value === null || value === undefined) return;
+    // Skip empty values (`return` here would drop the whole query string)
+    if (value === null || value === undefined) continue;
 
     // Arrays
     if (Array.isArray(value)) {
@@ -78,11 +79,15 @@ export function constructUrl(
   let urlWithPaths = cleanBaseUrl;
 
   if (path) {
+    // Strip slashes at segment edges so "/users" or ["/users/", "1"] never
+    // produce "//" when joined to the base URL. A trailing slash on a string
+    // path is kept, since some APIs treat "users/" and "users" differently.
     const pathSegment = Array.isArray(path)
       ? path
-          .map((segment) => segment.toString().trim())
+          .map((segment) => String(segment).trim().replace(/^\/+|\/+$/g, ""))
+          .filter((segment) => segment !== "")
           .join("/")
-      : path.toString().trim();
+      : String(path).trim().replace(/^\/+/, "");
 
     urlWithPaths = `${cleanBaseUrl}/${pathSegment}`;
   }
