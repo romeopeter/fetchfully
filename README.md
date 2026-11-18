@@ -16,7 +16,8 @@
 - **Simple path and query parameters**: Pass path and query parameters as object values. Tweak query array formatting in config.
 - **Global config and instances**: Create independent instances that share a global config or override it with instance-specific config.
 - **Consumable request methods**: Ergonomic shortcuts for common HTTP requests.
-- **Request status**: Monitor loading, success, and error states on every response.
+- **Errors as values**: Every response settles to success or error; narrow on `isSuccess` instead of wrapping calls in `try/catch`.
+- **Live request status**: `createQuery()` tracks idle, loading, success, and error as an observable that plugs into React, Vue, Svelte, Solid, or Angular.
 - **Refetch**: Re-run a request without reconstructing its config.
 - **Interrupts**: Register request and response interrupt handlers per instance, with eject support.
 - **Fully typed**: Written in TypeScript with all necessary types exported.
@@ -249,6 +250,9 @@ if (response.isSuccess) {
   // Re-run with the exact same config
   const fresh = await response.refetch();
   console.log("Updated users:", fresh.data);
+
+  // Or override fields for this run (shallow-merged over the original config)
+  const nextPage = await response.refetch({ query: { page: 2 } });
 }
 ```
 
@@ -306,21 +310,124 @@ useEffect(() => {
 
 ---
 
-## Request Status
+## Responses
 
-Every response includes status indicators for easy conditional rendering.
+An awaited response has always finished, so it is either a success or an error. Errors are returned, not thrown.
 
 ```javascript
 const res = await fetcher.get("/users");
 
-res.isIdle     // true when no request is in flight
-res.isLoading  // true while the request is pending
+res.status     // "success" | "error"
 res.isSuccess  // true on a successful response
-res.isError    // true on any error (network, timeout, HTTP error)
-res.status     // "idle" | "loading" | "success" | "error"
+res.isError    // true on any error (network, timeout, cancel, HTTP error)
 res.statusCode // HTTP status code (e.g. 404)
 res.data       // response data, or null on error
 res.error      // Error instance, or null on success
+```
+
+In TypeScript, checking `isSuccess` (or `status`) narrows the response:
+
+```typescript
+const res = await fetcher<User>({ path: "users/1" });
+
+if (res.isSuccess) {
+  res.data.name;     // User, not User | null
+} else {
+  res.error.message; // Error, not Error | null
+}
+```
+
+> `res.isLoading` and `res.isIdle` are deprecated. On an awaited response they are always `false` and `true`. Use `createQuery()` below for live status. They will be removed in 2.0.
+
+---
+
+## Live Request Status
+
+`createQuery()` wraps a request in a small observable that reports `idle → loading → success | error` as it happens. It has no framework dependency: it exposes `subscribe` and `getSnapshot`, the shape every major UI framework already knows how to consume.
+
+```javascript
+import { Fetchfully, createQuery } from "fetchfully";
+
+const users = createQuery(Fetchfully, { path: "users" });
+
+users.subscribe((state) => {
+  state.status    // "idle" | "loading" | "success" | "error"
+  state.isLoading // true while a request is in flight
+  state.data      // latest data; kept from the previous run while reloading
+  state.error     // Error instance in the error state, otherwise null
+});
+
+await users.run();                         // nothing is sent until run()
+await users.run({ query: { page: 2 } });   // override config for this run
+users.abort();                             // cancel; state.error is a CancelError
+```
+
+- **Nothing runs on creation.** Call `run()` when you want the request to go out (this keeps server rendering and conditional fetching in your hands).
+- **The newest run wins.** Calling `run()` while a request is in flight aborts the older one, and its result is dropped.
+- **`run()` never rejects.** Failures, including thrown config errors, end up in `state.error`.
+- **One query, many subscribers.** Create a query once (for example at module level) and subscribe to it from as many components as you like. They all share one state, and only one request is ever in flight. There is no response cache: each `run()` sends a fresh request.
+
+### React
+
+```jsx
+import { useEffect, useState, useSyncExternalStore } from "react";
+
+function Users() {
+  // Create the query once per component, not on every render
+  const [users] = useState(() => createQuery(Fetchfully, { path: "users" }));
+  const state = useSyncExternalStore(users.subscribe, users.getSnapshot, users.getSnapshot);
+
+  useEffect(() => {
+    users.run();
+    return () => users.abort();
+  }, [users]);
+
+  if (state.isError) return <p>{state.error.message}</p>;
+  if (!state.data) return <p>Loading…</p>;
+  return <UserList users={state.data} />;
+}
+```
+
+### Svelte
+
+A query already satisfies Svelte's store contract, so `$` works directly:
+
+```svelte
+<script>
+  const users = createQuery(Fetchfully, { path: "users" });
+  users.run();
+</script>
+
+{#if $users.isLoading}Loading…{:else if $users.isError}{$users.error.message}{/if}
+```
+
+### Vue
+
+```javascript
+import { shallowRef, onScopeDispose } from "vue";
+
+const users = createQuery(Fetchfully, { path: "users" });
+const state = shallowRef(users.getSnapshot());
+
+onScopeDispose(users.subscribe((s) => (state.value = s)));
+onScopeDispose(() => users.abort());
+users.run();
+```
+
+### Solid
+
+```javascript
+import { from } from "solid-js";
+
+const state = from(users); // state()?.isLoading
+```
+
+### Angular
+
+```typescript
+const state = signal(users.getSnapshot());
+inject(DestroyRef).onDestroy(users.subscribe((s) => state.set(s)));
+users.run();
 ```
 
 ---

@@ -9,7 +9,7 @@ import {
   CancelError,
   HttpError,
 } from "./utils/custom-request-errors";
-import fetchfullyResponse from "./response";
+import { errorResponse } from "./response";
 import { attachActionMethods } from "./consumable-methods";
 import {
   createInterrupts,
@@ -35,14 +35,14 @@ export function createFetch(
 ): Omit<FetchfullyInstance, "create"> {
   const interrupts = createInterrupts();
 
-  async function fetcher(
+  async function fetcher<T = any>(
     initConfig: FetchfullyConfig
-  ): Promise<FetchfullyResponse> {
+  ): Promise<FetchfullyResponse<T>> {
     const merged = mergeConfig(factoryConfig, initConfig);
     const config = await runRequestInterrupts(merged, interrupts.request);
 
     const refetch = (override?: Partial<FetchfullyConfig>) =>
-      fetcher({ ...initConfig, ...override });
+      fetcher<T>({ ...initConfig, ...override });
 
     const requestQueryParameter = {
       query: config.query,
@@ -58,7 +58,7 @@ export function createFetch(
     const maxRetries = config.retries ?? 0;
     const retryDelay = config.retryDelay ?? 1000;
 
-    let result: FetchfullyResponse | undefined;
+    let result: FetchfullyResponse<T> | undefined;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       // Fresh controller per attempt — aborted controllers cannot be reused
@@ -149,14 +149,7 @@ export function createFetch(
           continue;
         }
 
-        result = fetchfullyResponse(
-          "error",
-          null,
-          fetchError,
-          undefined,
-          undefined,
-          refetch
-        );
+        result = errorResponse<T>(fetchError, undefined, undefined, refetch);
         break;
       } finally {
         clearTimeout(timeoutID);
@@ -165,9 +158,7 @@ export function createFetch(
 
     // Unreachable at runtime — `result` is always set inside the loop
     if (!result) {
-      result = fetchfullyResponse(
-        "error",
-        null,
+      result = errorResponse<T>(
         new NetworkError("Request failed"),
         undefined,
         undefined,

@@ -1,5 +1,5 @@
 import filterByContentType from "./utils/filter-by-content-type";
-import fetchfullyResponse from "./response";
+import { successResponse, errorResponse } from "./response";
 import { HttpError } from "./utils/custom-request-errors";
 import { FetchfullyResponse, FetchfullyConfig } from "./types";
 /* ---------------------------------------------------------------------- */
@@ -7,120 +7,35 @@ import { FetchfullyResponse, FetchfullyConfig } from "./types";
 /**
  * Handles all mutation requests (POST, PUT, PATCH, DELETE) cases
  *
+ * Success is any 2xx status, plus 304 (Not Modified). Typical codes:
+ * - POST/PUT: 200 (OK) or 201 (Created).
+ * - PATCH: 200 (OK) or 204 (No Content); 304 when nothing changed.
+ * - DELETE: 200 (OK) with a body, 202 (Accepted) when not yet enacted,
+ *   or 204 (No Content) when enacted with nothing more to say.
+ *
+ * Everything else (4xx, 5xx, other 3xx, opaque responses) is an HttpError.
+ *
  * @param response Response: Fetch API response interface to a request.
  *
- * @returns Promise<any>
+ * @returns Promise<FetchfullyResponse>
  */
 export default async function mutationQuery(
   originResponse: Response,
   refetch?: (
     override?: Partial<FetchfullyConfig>
   ) => Promise<FetchfullyResponse>
-) {
-  let response = fetchfullyResponse(
-    "loading",
-    null,
-    null,
-    undefined,
-    undefined
+): Promise<FetchfullyResponse> {
+  const { status, statusText, url, headers } = originResponse;
+
+  if (originResponse.ok || status === 304) {
+    const data = await filterByContentType(originResponse);
+    return successResponse(data, status, headers, refetch);
+  }
+
+  return errorResponse(
+    new HttpError(status, statusText, url),
+    status,
+    headers,
+    refetch
   );
-
-  // Server error
-  if (originResponse.status > 499 && originResponse.status <= 599) {
-    const error = new HttpError(
-      originResponse.status,
-      originResponse.statusText,
-      originResponse.url
-    );
-
-    return fetchfullyResponse(
-      "error",
-      null,
-      error,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  }
-
-  // Client error
-  if (originResponse.status > 399 && originResponse.status <= 499) {
-    const error = new HttpError(
-      originResponse.status,
-      originResponse.statusText,
-      originResponse.url
-    );
-
-    return fetchfullyResponse(
-      "error",
-      null,
-      error,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  }
-
-  /**
-   * POST/PUT
-   *
-   * - 200 (OK) or 201 (created).
-   *
-   */
-  if (originResponse.status === 200 || originResponse.status === 201) {
-    const data = await filterByContentType(originResponse);
-
-    response = fetchfullyResponse(
-      "success",
-      data,
-      null,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  }
-
-  /**
-   * PATCH
-   *
-   * For a successful PATCH, common status codes would likely be:
-   * - 200 (OK) or 204 (No Content).
-   * If the PATCH method was unsuccessful, status codes such as 304 (Not Modified), 400 (Bad Request),
-   * or 422 (Unprocessable Entity) may be seen. This is already handled above!
-   */
-  if (originResponse.status === 204 || originResponse.status === 304) {
-    const data = await filterByContentType(originResponse);
-
-    response = fetchfullyResponse(
-      "success",
-      data,
-      null,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  }
-
-  /**
-   * DELETE
-   *
-   * If a DELETE method is successfully applied, there are several response status codes possible:
-   * - 202 (Accepted) status code if the action will likely succeed but has not yet been enacted.
-   * - 204 (No Content) status code if the action has been enacted and no further information is to be supplied.
-   * - 200 (OK) status code if the action has been enacted and the response message includes a representation describing the status.
-   */
-  if (originResponse.status === 202 || originResponse.status === 204) {
-    const data = await filterByContentType(originResponse);
-
-    response = fetchfullyResponse(
-      "success",
-      data,
-      null,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  }
-
-  return response;
 }

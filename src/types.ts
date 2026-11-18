@@ -36,26 +36,107 @@ export type FetchfullyConfig = {
 // Request type
 export type RequestStatus = "idle" | "loading" | "success" | "error";
 
-// Response type
-export type FetchfullyResponse<T = any> = {
-  data: T | null;
-  error: Error | null;
-  status: RequestStatus;
-
-  // Convenience booleans (similar to React Query)
+// Fields shared by every settled response
+type FetchfullyResponseBase<T> = {
+  /**
+   * @deprecated An awaited response has always finished, so this is always
+   * `true`. Use `createQuery()` to track live request state. Removed in 2.0.
+   */
   isIdle: boolean;
+  /**
+   * @deprecated An awaited response has always finished, so this is always
+   * `false`. Use `createQuery()` to track live request state. Removed in 2.0.
+   */
   isLoading: boolean;
-  isSuccess: boolean;
-  isError: boolean;
 
   // Headers and status
   statusCode?: number;
   headers?: RequestHeaders;
 
   // Control methods
-  refetch?: () => Promise<FetchfullyResponse<T>>;
+  refetch?: (
+    override?: Partial<FetchfullyConfig>,
+  ) => Promise<FetchfullyResponse<T>>;
   cancel?: () => void;
 };
+
+export type FetchfullySuccessResponse<T = any> = FetchfullyResponseBase<T> & {
+  status: "success";
+  isSuccess: true;
+  isError: false;
+  data: T;
+  error: null;
+};
+
+export type FetchfullyErrorResponse<T = any> = FetchfullyResponseBase<T> & {
+  status: "error";
+  isSuccess: false;
+  isError: true;
+  data: null;
+  error: Error;
+};
+
+/**
+ * The settled result of a request. Check `isSuccess` (or `status`) to narrow:
+ * on success `data` is `T`, on error `error` is an `Error`.
+ */
+export type FetchfullyResponse<T = any> =
+  | FetchfullySuccessResponse<T>
+  | FetchfullyErrorResponse<T>;
+
+/* ---------------------------------------------------------------------- */
+// Query (framework-agnostic observable request state)
+
+type QueryFlags<S extends RequestStatus> = {
+  isIdle: S extends "idle" ? true : false;
+  isLoading: S extends "loading" ? true : false;
+  isSuccess: S extends "success" ? true : false;
+  isError: S extends "error" ? true : false;
+};
+
+/**
+ * Snapshot of a query's live state.
+ *
+ * - `idle`: `run()` has not been called yet.
+ * - `loading`: a request is in flight; `data` keeps the previous result, if any.
+ * - `success`: the latest request succeeded.
+ * - `error`: the latest request failed; `data` keeps the previous result, if any.
+ */
+export type QueryState<T = any> =
+  | ({ status: "idle"; data: null; error: null } & QueryFlags<"idle">)
+  | ({ status: "loading"; data: T | null; error: null } & QueryFlags<"loading">)
+  | ({ status: "success"; data: T; error: null } & QueryFlags<"success">)
+  | ({ status: "error"; data: T | null; error: Error } & QueryFlags<"error">);
+
+export type QueryListener<T = any> = (state: QueryState<T>) => void;
+
+/**
+ * Framework-agnostic observable request. The `subscribe` / `getSnapshot` pair
+ * plugs into React's `useSyncExternalStore`, works as a Svelte store as-is,
+ * and adapts to Vue, Solid, and Angular in a few lines.
+ */
+export interface Query<T = any> {
+  /** Current state. The same object is returned until the state changes. */
+  getSnapshot(): QueryState<T>;
+  /**
+   * Calls `listener` immediately with the current state, then on every change.
+   * Returns an unsubscribe function.
+   */
+  subscribe(listener: QueryListener<T>): () => void;
+  /**
+   * Sends the request, merging `override` over the query's config. Aborts any
+   * request already in flight (the newest call wins). Always resolves, never
+   * rejects; failures end up in `state.error`.
+   */
+  run(override?: Partial<FetchfullyConfig>): Promise<QueryState<T>>;
+  /** Aborts the in-flight request, if any. The state becomes a `CancelError`. */
+  abort(reason?: unknown): void;
+}
+
+/** Anything callable like a Fetchfully instance. */
+export type QueryFetcher<T = any> = (
+  config: FetchfullyConfig,
+) => Promise<FetchfullyResponse<T>>;
 
 export interface RequestMethods {
   get<T = any>(
@@ -104,7 +185,7 @@ export type Interrupts = {
 
 // Fetchfully instance structure
 export interface FetchfullyInstance extends RequestMethods {
-  (config: FetchfullyConfig): Promise<any>;
+  <T = any>(config: FetchfullyConfig): Promise<FetchfullyResponse<T>>;
   defaults: FetchfullyConfig;
   create: (config?: FetchfullyConfig) => FetchfullyInstance;
   interrupts: Interrupts;
