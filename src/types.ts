@@ -28,6 +28,15 @@ export type FetchfullyConfig = {
   queryArrayFormat?: "brackets" | "comma" | "repeat" | "none";
   retries?: number;
   retryDelay?: number;
+  /**
+   * Share one network call between identical GET requests in flight at the
+   * same time (same URL, query, headers, credentials, and mode). Each caller
+   * still gets its own response object, timeout, cancellation, and response
+   * interrupts, but the parsed `data` is the same object, so treat it as
+   * read-only. Not a cache: requests that don't overlap each hit the network.
+   * Ignored for non-GET methods. Default: `false`.
+   */
+  dedupe?: boolean;
   whenSuccessful?: (data: any) => void;
   whenFailed?: (data: Error) => void;
   whenDone?: (data: any, Error: null | Error) => void;
@@ -137,6 +146,58 @@ export interface Query<T = any> {
 export type QueryFetcher<T = any> = (
   config: FetchfullyConfig,
 ) => Promise<FetchfullyResponse<T>>;
+
+/* ---------------------------------------------------------------------- */
+// Query groups (several queries observed as one)
+
+/** The data type of each query in a tuple of queries. */
+export type QueryGroupData<Q extends readonly Query<any>[]> = {
+  [K in keyof Q]: Q[K] extends Query<infer T> ? T : never;
+};
+
+type NullableEach<D extends readonly unknown[]> = {
+  [K in keyof D]: D[K] | null;
+};
+
+type QueryGroupBase<D extends readonly unknown[]> = {
+  /** Each query's own snapshot, in order. */
+  states: { [K in keyof D]: QueryState<D[K]> };
+  /** Each query's error, or `null`, in order. */
+  errors: { [K in keyof D]: Error | null };
+};
+
+/**
+ * Combined snapshot of a query group.
+ *
+ * - `loading`: at least one query is in flight.
+ * - `error`: none in flight, at least one failed; `error` is the first failure.
+ * - `success`: every query succeeded; `data` holds every result.
+ * - `idle`: otherwise (some query has not run yet).
+ */
+export type QueryGroupState<D extends readonly unknown[] = unknown[]> =
+  QueryGroupBase<D> &
+    (
+      | ({ status: "idle"; data: NullableEach<D>; error: null } & QueryFlags<"idle">)
+      | ({ status: "loading"; data: NullableEach<D>; error: null } & QueryFlags<"loading">)
+      | ({ status: "success"; data: D; error: null } & QueryFlags<"success">)
+      | ({ status: "error"; data: NullableEach<D>; error: Error } & QueryFlags<"error">)
+    );
+
+export type QueryGroupListener<D extends readonly unknown[] = unknown[]> = (
+  state: QueryGroupState<D>,
+) => void;
+
+/** Several queries observed as one. Same contract as `Query`. */
+export interface QueryGroup<D extends readonly unknown[] = unknown[]> {
+  /** Current combined state. Same object until a query's state changes. */
+  getSnapshot(): QueryGroupState<D>;
+  /** Calls `listener` immediately, then on every change. Returns unsubscribe. */
+  subscribe(listener: QueryGroupListener<D>): () => void;
+  /** Runs every query in parallel. Never rejects. */
+  run(): Promise<QueryGroupState<D>>;
+  /** Aborts every query's in-flight request. */
+  abort(reason?: unknown): void;
+}
 
 /**
  * Per-call options for the shortcut methods. `path`, `method`, `query`, and

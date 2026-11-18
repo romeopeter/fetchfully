@@ -18,6 +18,7 @@
 - **Consumable request methods**: Ergonomic shortcuts for common HTTP requests.
 - **Errors as values**: Every response settles to success or error; narrow on `isSuccess` instead of wrapping calls in `try/catch`.
 - **Live request status**: `createQuery()` tracks idle, loading, success, and error as an observable that plugs into React, Vue, Svelte, Solid, or Angular.
+- **Multiple requests**: `combineQueries()` gives several queries one combined status, and opt-in `dedupe` shares a single network call between identical GETs in flight at the same time.
 - **Refetch**: Re-run a request without reconstructing its config.
 - **Interrupts**: Register request and response interrupt handlers per instance, with eject support.
 - **Fully typed**: Written in TypeScript with all necessary types exported.
@@ -462,6 +463,64 @@ const state = signal(users.getSnapshot());
 inject(DestroyRef).onDestroy(users.subscribe((s) => state.set(s)));
 users.run();
 ```
+
+---
+
+## Running Requests Together
+
+Responses never reject, so `Promise.all` waits for every request and never short-circuits on the first failure:
+
+```javascript
+const [users, posts] = await Promise.all([
+  Fetchfully.get("/users"),
+  Fetchfully.get("/posts"),
+]);
+
+if (users.isError) showError(users.error);
+```
+
+For live status across several requests, combine queries into a group. A group has the same `subscribe` / `getSnapshot` / `run` / `abort` contract as a single query, so every framework recipe above works unchanged.
+
+```javascript
+import { Fetchfully, createQuery, combineQueries } from "fetchfully";
+
+const users = createQuery(Fetchfully, { path: "users" });
+const posts = createQuery(Fetchfully, { path: "posts" });
+const page = combineQueries([users, posts]);
+
+page.subscribe((state) => {
+  state.status  // combined: "idle" | "loading" | "success" | "error"
+  state.data    // [usersData, postsData]; both non-null when status is "success"
+  state.error   // the first failure, if any
+  state.errors  // each query's error, or null
+  state.states  // each query's own snapshot
+});
+
+await page.run(); // runs both in parallel; never rejects
+page.abort();     // cancels both
+```
+
+The combined status is `loading` if any query is in flight, otherwise `error` if any failed, `success` if all succeeded, and `idle` if some query hasn't run yet. Groups take existing queries, so a query shared across components can also be part of a group. In TypeScript, `combineQueries([users, posts])` infers the data tuple, e.g. `[User[], Post[]]`.
+
+---
+
+## Deduplicating Requests
+
+Turn on `dedupe` and identical GET requests that are in flight at the same time share one network call. "Identical" means the same URL, query, headers, credentials, and mode.
+
+```javascript
+const api = Fetchfully.create({ baseURL: "https://api.example.com", dedupe: true });
+
+// Three components ask for the current user at once → one request
+const [a, b, c] = await Promise.all([api.get("/me"), api.get("/me"), api.get("/me")]);
+```
+
+Set it on `Fetchfully.defaults`, on an instance, or per call (`get("/me", undefined, { dedupe: true })`). It's off by default.
+
+- **Each caller stays independent.** Every caller gets its own response object, runs the response interrupts, and keeps its own `timeout` and `signal`. A caller that cancels leaves alone; the network request is only aborted once every caller has cancelled.
+- **The data is shared.** Callers receive the same parsed `data` object, so treat it as read-only.
+- **It is not a cache.** Requests that don't overlap in time each go to the network.
+- **GET only.** Mutations are never deduplicated.
 
 ---
 

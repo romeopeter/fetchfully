@@ -11,6 +11,7 @@ import {
 } from "./utils/custom-request-errors";
 import { errorResponse } from "./response";
 import { attachActionMethods } from "./consumable-methods";
+import { createInFlight, dedupeKey } from "./in-flight";
 import {
   createInterrupts,
   runRequestInterrupts,
@@ -34,6 +35,7 @@ export function createFetch(
   factoryConfig: FetchfullyConfig = {}
 ): Omit<FetchfullyInstance, "create"> {
   const interrupts = createInterrupts();
+  const inFlight = createInFlight();
 
   async function fetcher<T = any>(
     initConfig: FetchfullyConfig
@@ -75,6 +77,8 @@ export function createFetch(
         }
       }
 
+      // No signal here: the in-flight registry gives each network request its
+      // own, and this caller's signal only decides when the caller leaves
       const fetchConfig: RequestInit = {
         method: config.method,
         body: undefined,
@@ -82,7 +86,6 @@ export function createFetch(
         credentials: config.credentials,
         keepalive: config.keepalive,
         mode: config.mode,
-        signal: internalController.signal,
       };
 
       if (config.body && config.method !== "GET") {
@@ -106,12 +109,24 @@ export function createFetch(
 
         const fullUrl = constructUrl(baseUrl, config.path, requestQueryParameter);
 
-        const originResponse = await fetch(fullUrl, fetchConfig);
+        const execute = async (signal: AbortSignal) => {
+          const originResponse = await fetch(fullUrl, { ...fetchConfig, signal });
 
-        result =
-          config.method !== "GET"
-            ? await mutationQuery(originResponse, refetch)
-            : await requestQuery(originResponse, refetch);
+          return config.method !== "GET"
+            ? mutationQuery(originResponse)
+            : requestQuery(originResponse);
+        };
+
+        // Joins an identical in-flight GET when `dedupe` is on; otherwise runs alone.
+        // Rejects with an AbortError if this caller's signal or timeout fires first.
+        const shared = await inFlight.join(
+          dedupeKey(config, fullUrl),
+          execute,
+          internalController.signal
+        );
+
+        // Each caller gets its own response object and refetch
+        result = { ...shared, refetch };
 
         break; // success — exit retry loop, response interrupts will run below
       } catch (error: any) {

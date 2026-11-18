@@ -12,6 +12,10 @@ export type {
   QueryState,
   QueryListener,
   QueryFetcher,
+  QueryGroup,
+  QueryGroupState,
+  QueryGroupData,
+  QueryGroupListener,
 } from "./types";
 
 // Main implementation
@@ -20,6 +24,7 @@ export { default as Http } from "./fetchfully";
 
 // Framework-agnostic observable request state
 export { createQuery } from "./query";
+export { combineQueries } from "./combine-queries";
 
 // Error classes, for `res.error instanceof HttpError` and similar checks
 export {

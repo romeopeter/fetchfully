@@ -12,6 +12,7 @@ export const defaultConfig: FetchfullyConfig = {
   timeout: 0,
   retries: 0,
   retryDelay: 1000,
+  dedupe: false,
   headers: {
     "Content-Type": "application/json",
     "Cache-Control": "no-cache",
