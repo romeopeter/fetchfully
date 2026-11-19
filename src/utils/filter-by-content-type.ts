@@ -14,7 +14,11 @@ export default async function filterByContentType(originResponse: Response) {
     data = await originResponse.arrayBuffer();
   } else if (contentType?.includes("multipart/form-data")) {
     data = await originResponse.formData();
-  } else if (contentType?.includes("image/")) {
+  } else if (
+    contentType?.includes("image/") ||
+    contentType?.includes("video/") ||
+    contentType?.includes("audio/")
+  ) {
     data = await originResponse.blob();
   } else {
     // Default case: read as text

@@ -1,4 +1,19 @@
-import { FetchfullyConfig } from "../types";
+import type { FetchfullyConfig, RequestHeaders } from "../types";
+
+// Header names are case-insensitive: a source header replaces any target
+// header with the same name in another spelling, so `content-type` set on a
+// call replaces the default `Content-Type` instead of being sent beside it
+const mergeHeaders = (
+  target: RequestHeaders,
+  source: RequestHeaders
+): RequestHeaders => {
+  const replaced = new Set(Object.keys(source).map((name) => name.toLowerCase()));
+  const kept = Object.entries(target).filter(
+    ([name]) => !replaced.has(name.toLowerCase())
+  );
+
+  return { ...Object.fromEntries(kept), ...source };
+};
 
 /**
  * Merges instance-specific config to default config.
@@ -21,7 +36,9 @@ export function mergeConfig(
     source: Partial<FetchfullyConfig>
   ): FetchfullyConfig => {
     for (const key in source) {
-      if (
+      if (key === "headers" && isObject(source.headers) && isObject(target.headers)) {
+        target.headers = mergeHeaders(target.headers, source.headers);
+      } else if (
         isObject(source[key as keyof Partial<FetchfullyConfig>]) &&
         isObject(target[key as keyof FetchfullyConfig])
       ) {

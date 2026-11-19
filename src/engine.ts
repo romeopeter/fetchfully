@@ -53,23 +53,35 @@ const requestBody = ({ body, method }: FetchfullyConfig): BodyInit | undefined =
 const isJsonType = (value: unknown) =>
   String(value).split(";")[0].trim().toLowerCase() === "application/json";
 
-// The default `Content-Type: application/json` doesn't describe a FormData,
-// Blob, binary or URLSearchParams body, so it's dropped and fetch() sets the
-// right one: the multipart boundary, the Blob's own type, or form encoding.
-// FormData drops any Content-Type, since only fetch() knows the boundary.
+// The headers to send:
+// - Names are case-insensitive, so when two differ only in case (one added
+//   by an interrupt, say), the last one wins.
+// - A header set to `undefined` is left out, which drops a default.
+// - The default `Content-Type: application/json` doesn't describe a FormData,
+//   Blob, binary or URLSearchParams body, so it's dropped and fetch() sets the
+//   right one: the multipart boundary, the Blob's own type, or form encoding.
+//   FormData drops any Content-Type, since only fetch() knows the boundary.
 const headersFor = (
   headers: RequestHeaders | undefined,
   body: BodyInit | undefined
-): RequestHeaders | undefined => {
-  if (!headers || body === undefined || typeof body === "string") return headers;
+): RequestHeaders => {
+  const nativeBody = body !== undefined && typeof body !== "string";
+  const byName = new Map<string, [string, unknown]>();
 
-  return Object.fromEntries(
-    Object.entries(headers).filter(
-      ([name, value]) =>
-        name.toLowerCase() !== "content-type" ||
-        (!(body instanceof FormData) && !isJsonType(value))
-    )
-  );
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    const lowerName = name.toLowerCase();
+    byName.delete(lowerName);
+
+    const dropped =
+      value === undefined ||
+      (nativeBody &&
+        lowerName === "content-type" &&
+        (body instanceof FormData || isJsonType(value)));
+
+    if (!dropped) byName.set(lowerName, [name, value]);
+  }
+
+  return Object.fromEntries(byName.values());
 };
 
 // fetch() rejects with a TypeError whenever the network fails, and every
@@ -125,6 +137,7 @@ export function createFetch(
     }
 
     let fullUrl: string;
+    let headers: RequestHeaders;
     let fetchConfig: RequestInit;
 
     try {
@@ -133,14 +146,15 @@ export function createFetch(
         queryArrayFormat: config.queryArrayFormat,
       });
 
+      const body = requestBody(config);
+      headers = headersFor(config.headers, body);
+
       // No signal here: the in-flight registry gives each network request its
       // own, and this caller's signal only decides when the caller leaves
-      const body = requestBody(config);
-
       fetchConfig = {
         method: config.method,
         body,
-        headers: headersFor(config.headers, body),
+        headers,
         credentials: config.credentials,
         keepalive: config.keepalive,
         mode: config.mode,
@@ -168,10 +182,14 @@ export function createFetch(
       refetch,
     });
 
+    // Keyed on the headers actually sent, so spelling and `undefined` values
+    // don't split identical requests
     const isGet = config.method === "GET";
     const cacheOptions = isGet && config.cache ? config.cache : null;
     const key =
-      isGet && (config.dedupe || cacheOptions) ? requestKey(config, fullUrl) : null;
+      isGet && (config.dedupe || cacheOptions)
+        ? requestKey({ ...config, headers }, fullUrl)
+        : null;
 
     if (cacheOptions && key !== null) {
       const hit = cache.read(key, cacheOptions.staleTime ?? 0);

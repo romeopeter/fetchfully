@@ -422,6 +422,86 @@ await run("21. A binary body is sent again on retry", async () => {
 });
 
 // ---------------------------------------------------------------
+// Header names and values
+// ---------------------------------------------------------------
+
+await run("22. Header names merge case-insensitively across config levels", async () => {
+  reset();
+  await api.post("import", "a,b", undefined, { headers: { "content-type": "text/csv" } });
+  let got = await received();
+  assert(got.type === "text/csv", `call's "content-type" replaces the default (got ${got.type})`);
+
+  const csvApi = Fetchfully.create({ baseURL: BASE, headers: { "content-type": "text/csv" } });
+  reset();
+  await csvApi.post("import", "<a/>", undefined, { headers: { "Content-Type": "application/xml" } });
+  got = await received();
+  assert(got.type === "application/xml", `call beats instance whatever the spelling (got ${got.type})`);
+});
+
+await run("23. An interrupt's header replaces one spelled differently", async () => {
+  const authApi = Fetchfully.create({ baseURL: BASE, headers: { authorization: "Bearer old" } });
+  authApi.interrupts.request.use((config) => {
+    config.headers["Authorization"] = "Bearer new";
+    return config;
+  });
+
+  reset();
+  await authApi.get("me");
+  const sent = new Request(calls[0].url, calls[0].init).headers.get("authorization");
+  assert(sent === "Bearer new", `one Authorization value, the interrupt's (got ${sent})`);
+});
+
+await run("24. A header set to undefined is left out", async () => {
+  reset();
+  await api.get("users", undefined, { headers: { "Cache-Control": undefined } });
+  let headers = new Request(calls[0].url, calls[0].init).headers;
+  assert(headers.get("cache-control") === null, `dropped for one call (got ${headers.get("cache-control")})`);
+  assert(headers.get("content-type") === "application/json", "other defaults stay");
+
+  const lean = Fetchfully.create({
+    baseURL: BASE,
+    headers: { "Content-Type": undefined, "Cache-Control": undefined },
+  });
+  reset();
+  await lean.get("users");
+  await lean.post("users", { name: "ada" }, undefined, {
+    headers: { "Content-Type": "application/json" },
+  });
+  headers = new Request(calls[0].url, calls[0].init).headers;
+  assert([...headers].length === 0, `instance-level undefined drops both defaults (got ${JSON.stringify([...headers])})`);
+  const post = await received(calls[1]);
+  assert(post.type === "application/json", `a call can set one back (got ${post.type})`);
+});
+
+await run("25. Spelling and undefined headers don't split deduplicated requests", async () => {
+  reset(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return new Response("ok", { status: 200 });
+  });
+
+  await Promise.all([
+    api.get("me", undefined, { dedupe: true, headers: { "X-Team": "a" } }),
+    api.get("me", undefined, { dedupe: true, headers: { "x-team": "a", "X-Unused": undefined } }),
+  ]);
+  assert(calls.length === 1, `one network call (${calls.length})`);
+});
+
+// ---------------------------------------------------------------
+// Response parsing
+// ---------------------------------------------------------------
+
+await run("26. Video and audio responses are Blobs", async () => {
+  for (const type of ["video/mp4", "audio/mpeg", "image/png"]) {
+    reset(() => new Response(new Uint8Array([0, 159, 146, 150]), { headers: { "Content-Type": type } }));
+    const res = await api.get("media");
+    const bytes = res.data instanceof Blob ? new Uint8Array(await res.data.arrayBuffer()) : null;
+
+    assert(res.data instanceof Blob, `${type} → Blob (got ${typeof res.data})`);
+    assert(bytes?.[1] === 159 && bytes?.length === 4, `${type}: bytes intact`);
+  }
+});
+
+// ---------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------
 
