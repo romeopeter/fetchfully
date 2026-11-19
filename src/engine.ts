@@ -21,6 +21,7 @@ import {
   type FetchfullyConfig,
   type FetchfullyResponse,
   type FetchfullyInstance,
+  type RequestHeaders,
 } from "./types";
 
 /* ------------------------------------------------------------------------------------ */
@@ -31,6 +32,45 @@ const baseUrlOf = (config: FetchfullyConfig) =>
 
 const toError = (value: unknown): Error =>
   value instanceof Error ? value : new Error(String(value));
+
+// Bodies fetch() can send as they are
+const isNativeBody = (body: unknown): body is BodyInit =>
+  typeof body === "string" ||
+  body instanceof FormData ||
+  body instanceof Blob ||
+  body instanceof URLSearchParams ||
+  body instanceof ArrayBuffer ||
+  ArrayBuffer.isView(body);
+
+// GET sends no body. Anything fetch() can't send as it is (an object, an
+// array) is sent as JSON.
+const requestBody = ({ body, method }: FetchfullyConfig): BodyInit | undefined => {
+  if (!body || method === "GET") return undefined;
+
+  return isNativeBody(body) ? body : JSON.stringify(body);
+};
+
+const isJsonType = (value: unknown) =>
+  String(value).split(";")[0].trim().toLowerCase() === "application/json";
+
+// The default `Content-Type: application/json` doesn't describe a FormData,
+// Blob, binary or URLSearchParams body, so it's dropped and fetch() sets the
+// right one: the multipart boundary, the Blob's own type, or form encoding.
+// FormData drops any Content-Type, since only fetch() knows the boundary.
+const headersFor = (
+  headers: RequestHeaders | undefined,
+  body: BodyInit | undefined
+): RequestHeaders | undefined => {
+  if (!headers || body === undefined || typeof body === "string") return headers;
+
+  return Object.fromEntries(
+    Object.entries(headers).filter(
+      ([name, value]) =>
+        name.toLowerCase() !== "content-type" ||
+        (!(body instanceof FormData) && !isJsonType(value))
+    )
+  );
+};
 
 // fetch() rejects with a TypeError whenever the network fails, and every
 // runtime words it differently: "fetch failed" (Node), "Failed to fetch"
@@ -95,30 +135,25 @@ export function createFetch(
 
       // No signal here: the in-flight registry gives each network request its
       // own, and this caller's signal only decides when the caller leaves
+      const body = requestBody(config);
+
       fetchConfig = {
         method: config.method,
-        body: undefined,
-        headers: config.headers,
+        body,
+        headers: headersFor(config.headers, body),
         credentials: config.credentials,
         keepalive: config.keepalive,
         mode: config.mode,
       };
 
-      if (config.body && config.method !== "GET") {
-        if (config.body instanceof FormData) {
-          fetchConfig.body = config.body;
-        } else if (typeof config.body === "string") {
-          fetchConfig.body = config.body;
-        } else {
-          fetchConfig.body = JSON.stringify(config.body);
-        }
-      }
-
       // Input fetch() would reject (a bad URL, header or mode) fails here as a
       // plain TypeError, before any attempt, so a TypeError from fetch() itself
-      // can only mean the network failed. Skipped where `Request` is missing,
-      // e.g. a test environment that only mocks `fetch`.
-      if (typeof Request === "function") new Request(fullUrl, fetchConfig);
+      // can only mean the network failed. The body is left out so a large
+      // upload isn't copied just to be checked. Skipped where `Request` is
+      // missing, e.g. a test environment that only mocks `fetch`.
+      if (typeof Request === "function") {
+        new Request(fullUrl, { ...fetchConfig, body: undefined });
+      }
     } catch (error) {
       // Invalid input, or a query or body value JSON.stringify can't handle;
       // errors stay values

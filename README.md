@@ -123,6 +123,15 @@ await Fetchfully({
 await Fetchfully({ url: "https://api.example.com/posts/1", method: "DELETE" });
 ```
 
+An object or array `body` is sent as JSON. A string is sent as it is, and so is anything `fetch` can send natively: `FormData`, `Blob`, `ArrayBuffer`, a typed array (such as a Node `Buffer`), or `URLSearchParams`. For those, Fetchfully drops its default `Content-Type: application/json` so `fetch` can set the right one: the `FormData` boundary, the `Blob`'s own type, or form encoding. Any other `Content-Type` you set is kept, except on `FormData`, where only `fetch` knows the boundary.
+
+```javascript
+await Fetchfully.post("/avatars", fileInput.files[0]); // sent with the file's own type
+await Fetchfully.post("/uploads", bytes, undefined, {
+  headers: { "Content-Type": "application/octet-stream" },
+});
+```
+
 ---
 
 ## Configuration Options

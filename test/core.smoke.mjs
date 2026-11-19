@@ -321,6 +321,107 @@ await run("17. Without a global Request (fetch-only mocks), failures still class
 });
 
 // ---------------------------------------------------------------
+// Request bodies
+// ---------------------------------------------------------------
+
+// What the server would receive for a recorded call
+const received = async (call = calls[0]) => {
+  const request = new Request(call.url, call.init);
+  return { type: request.headers.get("content-type"), text: await request.text() };
+};
+
+await run("18. Bodies fetch can send natively go as they are, with fetch's Content-Type", async () => {
+  const bytes = () => new TextEncoder().encode("raw-bytes");
+
+  reset();
+  await api.post("upload", new Blob(["png-bytes"], { type: "image/png" }));
+  let got = await received();
+  assert(got.text === "png-bytes", `Blob bytes sent (got ${JSON.stringify(got.text)})`);
+  assert(got.type === "image/png", `Blob's own type used (got ${got.type})`);
+
+  reset();
+  await api.post("upload", bytes().buffer);
+  got = await received();
+  assert(got.text === "raw-bytes", `ArrayBuffer bytes sent (got ${JSON.stringify(got.text)})`);
+  assert(got.type === null, `no JSON Content-Type on an ArrayBuffer (got ${got.type})`);
+
+  reset();
+  await api.post("upload", bytes());
+  got = await received();
+  assert(got.text === "raw-bytes", `Uint8Array bytes sent (got ${JSON.stringify(got.text.slice(0, 30))})`);
+
+  reset();
+  await api.post("login", new URLSearchParams({ user: "ada" }));
+  got = await received();
+  assert(got.text === "user=ada", `URLSearchParams sent encoded (got ${JSON.stringify(got.text)})`);
+  assert(
+    got.type?.startsWith("application/x-www-form-urlencoded"),
+    `form-encoded Content-Type (got ${got.type})`
+  );
+
+  const form = new FormData();
+  form.append("name", "ada");
+  reset();
+  await api.post("profile", form);
+  got = await received();
+  assert(got.type?.startsWith("multipart/form-data; boundary="), `FormData gets a boundary (got ${got.type})`);
+  assert(got.text.includes('name="name"') && got.text.includes("ada"), "FormData fields sent");
+});
+
+await run("19. Objects become JSON; strings and JSON keep application/json", async () => {
+  reset();
+  await api.post("users", { name: "ada" });
+  let got = await received();
+  assert(got.text === '{"name":"ada"}', `object sent as JSON (got ${got.text})`);
+  assert(got.type === "application/json", `JSON Content-Type kept (got ${got.type})`);
+
+  reset();
+  await api.post("users", '{"name":"ada"}');
+  got = await received();
+  assert(got.text === '{"name":"ada"}', "string sent as is");
+  assert(got.type === "application/json", `string keeps the JSON Content-Type (got ${got.type})`);
+});
+
+await run("20. A Content-Type you set is kept, except on FormData", async () => {
+  reset();
+  await api.post("upload", new TextEncoder().encode("raw").buffer, undefined, {
+    headers: { "content-type": "application/octet-stream" },
+  });
+  let got = await received();
+  assert(
+    got.type === "application/octet-stream",
+    `lowercase header wins over the JSON default, not merged with it (got ${got.type})`
+  );
+
+  const form = new FormData();
+  form.append("name", "ada");
+  reset();
+  await api.post("profile", form, undefined, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  got = await received();
+  assert(got.type?.includes("boundary="), `FormData's boundary still set (got ${got.type})`);
+});
+
+await run("21. A binary body is sent again on retry", async () => {
+  let attempt = 0;
+  reset(() => {
+    attempt++;
+    if (attempt === 1) throw new TypeError("Failed to fetch");
+    return new Response("ok", { status: 200 });
+  });
+
+  const res = await api.post("upload", new Blob(["png-bytes"], { type: "image/png" }), undefined, {
+    retries: 1,
+    retryDelay: 1,
+  });
+  const got = await received(calls[1]);
+
+  assert(res.isSuccess && calls.length === 2, `succeeded on the retry (${calls.length} calls)`);
+  assert(got.text === "png-bytes", `retry carries the same bytes (got ${JSON.stringify(got.text)})`);
+});
+
+// ---------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------
 

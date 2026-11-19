@@ -18,7 +18,14 @@ export type FetchfullyConfig = {
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?: string | FormData | Blob | ArrayBuffer | undefined;
+  body?:
+    | string
+    | FormData
+    | Blob
+    | ArrayBuffer
+    | ArrayBufferView
+    | URLSearchParams
+    | undefined;
   headers?: RequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
