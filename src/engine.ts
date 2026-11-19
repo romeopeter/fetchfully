@@ -109,17 +109,8 @@ export function createFetch(
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       // Fresh controller per attempt — aborted controllers cannot be reused
       const internalController = new AbortController();
+      const forwardAbort = () => internalController.abort(config.signal?.reason);
       let timeoutID: ReturnType<typeof setTimeout> | undefined;
-
-      if (config.signal) {
-        if (config.signal.aborted) {
-          internalController.abort(config.signal.reason);
-        } else {
-          config.signal.addEventListener("abort", () =>
-            internalController.abort(config.signal?.reason)
-          );
-        }
-      }
 
       // No signal here: the in-flight registry gives each network request its
       // own, and this caller's signal only decides when the caller leaves
@@ -143,6 +134,15 @@ export function createFetch(
       }
 
       try {
+        // Added inside `try` so `finally` always removes it: a long-lived
+        // caller signal would otherwise keep one listener (and this request's
+        // config) per attempt
+        if (config.signal?.aborted) {
+          internalController.abort(config.signal.reason);
+        } else {
+          config.signal?.addEventListener("abort", forwardAbort, { once: true });
+        }
+
         if (config.timeout) {
           timeoutID = setTimeout(() => internalController.abort(), config.timeout);
         }
@@ -215,6 +215,7 @@ export function createFetch(
         break;
       } finally {
         clearTimeout(timeoutID);
+        config.signal?.removeEventListener("abort", forwardAbort);
       }
     }
 

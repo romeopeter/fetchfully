@@ -6,6 +6,7 @@
  * Uses a mocked global fetch, so no network access is needed.
  */
 
+import { getEventListeners } from "node:events";
 import {
   Fetchfully,
   NetworkError,
@@ -185,6 +186,60 @@ await run("11. Error stack traces are not empty", async () => {
   const lines = res.error.stack.split("\n").length;
 
   assert(lines > 1, `NetworkError stack has frames (${lines} lines)`);
+});
+
+// ---------------------------------------------------------------
+// Caller signal listeners
+// ---------------------------------------------------------------
+
+await run("12. A long-lived signal keeps no listeners once requests finish", async () => {
+  const controller = new AbortController();
+  const { signal } = controller;
+  const listeners = () => getEventListeners(signal, "abort").length;
+
+  reset();
+  for (let i = 0; i < 5; i++) await api.get("users", undefined, { signal });
+  assert(listeners() === 0, `5 successes leave 0 listeners (got ${listeners()})`);
+
+  reset(() => new Response("missing", { status: 404 }));
+  await api.get("users", undefined, { signal });
+  assert(listeners() === 0, `HTTP error leaves 0 listeners (got ${listeners()})`);
+
+  reset(() => {
+    throw new TypeError("fetch failed");
+  });
+  await api.get("users", undefined, { signal, retries: 2, retryDelay: 1 });
+  assert(calls.length === 3, `retried twice (${calls.length} calls)`);
+  assert(listeners() === 0, `3 failed attempts leave 0 listeners (got ${listeners()})`);
+
+  reset(never);
+  const timedOut = await api.get("users", undefined, { signal, timeout: 10 });
+  assert(timedOut.error instanceof TimeoutError, "timeout still reported");
+  assert(listeners() === 0, `timeout leaves 0 listeners (got ${listeners()})`);
+
+  reset();
+  await Promise.all([
+    api.get("users", undefined, { signal, dedupe: true }),
+    api.get("users", undefined, { signal, dedupe: true }),
+  ]);
+  assert(calls.length === 1, `deduped GETs share one call (${calls.length})`);
+  assert(listeners() === 0, `deduped GETs leave 0 listeners (got ${listeners()})`);
+});
+
+await run("13. Cancelling through the signal still works", async () => {
+  const controller = new AbortController();
+
+  reset(never);
+  const pending = api.get("users", undefined, { signal: controller.signal });
+  controller.abort();
+  const res = await pending;
+
+  assert(res.error instanceof CancelError, "abort mid-flight → CancelError");
+
+  reset();
+  const late = await api.get("users", undefined, { signal: controller.signal });
+  assert(late.error instanceof CancelError, "already-aborted signal → CancelError");
+  assert(calls.length === 0, `no network call for an aborted signal (${calls.length})`);
 });
 
 // ---------------------------------------------------------------
