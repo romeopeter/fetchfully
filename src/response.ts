@@ -1,30 +1,54 @@
-import { FetchfullyResponse, RequestStatus } from "./types";
+import type {
+  FetchfullyErrorResponse,
+  FetchfullySuccessResponse,
+} from "./types";
 
 /* -------------------------------------------------------------- */
 
-// Response object
-export default function fetchfullyResponse<T>(
-  status: RequestStatus,
-  data: T | null = null,
-  error: Error | null = null,
-  statusCode?: number,
-  headers?: Headers,
-  refetch?: () => Promise<FetchfullyResponse<T>>
-): FetchfullyResponse<T> {
-  const convenientStatusCheck = {
-    isIdle: status !== "loading", // Request is idle if there's no loading operation
-    isLoading: status === "loading",
-    isError: status === "error",
-    isSuccess: status === "success",
-  };
+type Parsed<R> = Omit<R, "refetch">;
 
+/**
+ * A response as parsed, before the engine gives each caller its own copy
+ * with `requestUrl` and `refetch`. Shared between callers by the in-flight
+ * registry and stored by the cache.
+ */
+export type ParsedResponse<T = any> =
+  | Parsed<FetchfullySuccessResponse<T>>
+  | Parsed<FetchfullyErrorResponse<T>>;
+
+// A settled response is never in flight, so these are fixed (deprecated fields)
+const settledFlags = { isIdle: true, isLoading: false } as const;
+
+export function successResponse<T>(
+  data: T,
+  statusCode?: number,
+  headers?: Headers
+): Parsed<FetchfullySuccessResponse<T>> {
   return {
+    status: "success",
     data,
-    error,
-    status,
-    ...convenientStatusCheck,
+    error: null,
+    isSuccess: true,
+    isError: false,
+    ...settledFlags,
     statusCode,
     headers,
-    refetch,
+  };
+}
+
+export function errorResponse<T = any>(
+  error: Error,
+  statusCode?: number,
+  headers?: Headers
+): Parsed<FetchfullyErrorResponse<T>> {
+  return {
+    status: "error",
+    data: null,
+    error,
+    isSuccess: false,
+    isError: true,
+    ...settledFlags,
+    statusCode,
+    headers,
   };
 }

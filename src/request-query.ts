@@ -1,60 +1,27 @@
 import filterByContentType from "./utils/filter-by-content-type";
 import { HttpError } from "./utils/custom-request-errors";
-import fetchfullyResponse from "./response";
-import { type FetchfullyConfig, type FetchfullyResponse } from "./types";
+import { successResponse, errorResponse, type ParsedResponse } from "./response";
 
 /* ------------------------------------------------------ */
-
-type Override = (
-  override?: Partial<FetchfullyConfig>
-) => Promise<FetchfullyResponse>;
 
 /**
  * Handles all non-mutation request (GET) cases.
  *
- * @param response Response: Fetch API response interface for a request.
- * @param refetch Override: Re-execute user query
- * @returns FetchfullyResponse<any>
+ * Success is any 2xx status. Everything else is an HttpError, and its body
+ * isn't read.
+ *
+ * @param originResponse Response: Fetch API response interface for a request.
+ * @returns Promise<ParsedResponse>
  */
 export default async function requestQuery(
-  originResponse: Response,
-  refetch?: Override
-) {
-  let response = fetchfullyResponse(
-    "loading",
-    null,
-    null,
-    undefined,
-    undefined
-  );
+  originResponse: Response
+): Promise<ParsedResponse> {
+  const { status, statusText, url, headers } = originResponse;
 
   if (originResponse.ok) {
     const data = await filterByContentType(originResponse);
-
-    response = fetchfullyResponse(
-      "success",
-      data,
-      null,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
-  } else {
-    const error = new HttpError(
-      originResponse.status,
-      originResponse.statusText,
-      originResponse.url
-    );
-
-    response = fetchfullyResponse(
-      "error",
-      null,
-      error,
-      originResponse.status,
-      originResponse.headers,
-      refetch
-    );
+    return successResponse(data, status, headers);
   }
 
-  return response;
+  return errorResponse(new HttpError(status, statusText, url), status, headers);
 }

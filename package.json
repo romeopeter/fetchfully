@@ -27,7 +27,7 @@
     "url": "git+https://github.com/romeopeter/fetchfully.git"
   },
   "author": "Romeo Agbor Peter",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/romeopeter/fetchfully/issues"
   },

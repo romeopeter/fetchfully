@@ -9,23 +9,23 @@ export class NetworkError extends Error {
 
     // Maintains proper stack trace
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HttpError);
+      Error.captureStackTrace(this, NetworkError);
     }
   }
 }
 
 export class HttpError extends Error {
-  //@ts-ignore
-  private URL: string
-  //@ts-ignore
-  private status: string | number;
-  //@ts-ignore
-  private statusText: string;
+  /** Final URL of the response */
+  readonly URL: string;
+  /** HTTP status code, e.g. 404 */
+  readonly status: number | string;
+  /** HTTP status text, e.g. "Not Found" */
+  readonly statusText: string;
 
   constructor(status: number | string, statusText: string, url: string) {
     super(`HTTP Error! Status: ${status} - ${statusText}`);
     this.name = "HttpError";
-    this.URL = url
+    this.URL = url;
     this.status = status;
     this.statusText = statusText;
 
@@ -43,7 +43,7 @@ export class CorsError extends Error {
 
     // Maintains proper stack trace
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HttpError);
+      Error.captureStackTrace(this, CorsError);
     }
   }
 }
@@ -55,7 +55,7 @@ export class TimeoutError extends Error {
 
     // Maintains proper stack trace
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HttpError);
+      Error.captureStackTrace(this, TimeoutError);
     }
   }
 }
