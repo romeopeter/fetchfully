@@ -1,7 +1,6 @@
 import filterByContentType from "./utils/filter-by-content-type";
-import { successResponse, errorResponse } from "./response";
+import { successResponse, errorResponse, type ParsedResponse } from "./response";
 import { HttpError } from "./utils/custom-request-errors";
-import { FetchfullyResponse, FetchfullyConfig } from "./types";
 /* ---------------------------------------------------------------------- */
 
 /**
@@ -17,25 +16,17 @@ import { FetchfullyResponse, FetchfullyConfig } from "./types";
  *
  * @param response Response: Fetch API response interface to a request.
  *
- * @returns Promise<FetchfullyResponse>
+ * @returns Promise<ParsedResponse>
  */
 export default async function mutationQuery(
-  originResponse: Response,
-  refetch?: (
-    override?: Partial<FetchfullyConfig>
-  ) => Promise<FetchfullyResponse>
-): Promise<FetchfullyResponse> {
+  originResponse: Response
+): Promise<ParsedResponse> {
   const { status, statusText, url, headers } = originResponse;
 
   if (originResponse.ok || status === 304) {
     const data = await filterByContentType(originResponse);
-    return successResponse(data, status, headers, refetch);
+    return successResponse(data, status, headers);
   }
 
-  return errorResponse(
-    new HttpError(status, statusText, url),
-    status,
-    headers,
-    refetch
-  );
+  return errorResponse(new HttpError(status, statusText, url), status, headers);
 }

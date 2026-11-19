@@ -1,4 +1,5 @@
-// Common request headers type
+// Common request headers type. The listed values are editor suggestions;
+// `(string & {})` accepts any other value without losing them.
 export type RequestHeaders = {
   Authorization?: string;
   "Content-Type"?:
@@ -6,10 +7,25 @@ export type RequestHeaders = {
     | "application/x-www-form-urlencoded"
     | "multipart/form-data"
     | "text/html"
-    | "text/plain";
-  "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate";
+    | "text/plain"
+    | (string & {});
+  "Cache-Control"?: "no-cache" | "no-store" | "must-revalidate" | (string & {});
   [name: string]: any;
 };
+
+/**
+ * A request body. Strings and bodies `fetch` can send natively (`FormData`,
+ * `Blob`, `ArrayBuffer`, typed arrays, `URLSearchParams`) are sent as they
+ * are; any other object or array is sent as JSON.
+ */
+export type RequestBody =
+  | string
+  | FormData
+  | Blob
+  | ArrayBuffer
+  | ArrayBufferView
+  | URLSearchParams
+  | object;
 
 // Fetchfully core configuration
 export type FetchfullyConfig = {
@@ -18,14 +34,8 @@ export type FetchfullyConfig = {
   path?: string | string[];
   query?: Record<string, any>;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?:
-    | string
-    | FormData
-    | Blob
-    | ArrayBuffer
-    | ArrayBufferView
-    | URLSearchParams
-    | undefined;
+  /** Ignored for GET. See `RequestBody` for how each kind is sent. */
+  body?: RequestBody;
   headers?: RequestHeaders;
   credentials?: "same-origin" | "omit" | "include";
   keepalive?: boolean;
@@ -52,8 +62,11 @@ export type FetchfullyConfig = {
    * `dedupe` does.
    */
   cache?: CacheOptions | false;
+  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
   whenSuccessful?: (data: any) => void;
+  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
   whenFailed?: (data: Error) => void;
+  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
   whenDone?: (data: any, Error: null | Error) => void;
 };
 
@@ -109,16 +122,24 @@ type FetchfullyResponseBase<T> = {
    */
   isLoading: boolean;
 
-  // Headers and status
+  /** The HTTP status. `undefined` when no response arrived. */
   statusCode?: number;
-  headers?: RequestHeaders;
-  /** The URL Fetchfully requested (after path and query building). */
+  /** The response headers. `undefined` when no response arrived. */
+  headers?: Headers;
+  /**
+   * The URL Fetchfully requested (after path and query building).
+   * `undefined` only when the URL couldn't be built.
+   */
   requestUrl?: string;
 
-  // Control methods
-  refetch?: (
+  /**
+   * Sends the same request again. `override` replaces the given top-level
+   * options for that run. With caching on, it skips the cache read.
+   */
+  refetch: (
     override?: Partial<FetchfullyConfig>,
   ) => Promise<FetchfullyResponse<T>>;
+  /** @deprecated Never implemented: always `undefined`. Pass a `signal` to cancel. Removed in 2.0. */
   cancel?: () => void;
 };
 
@@ -321,6 +342,11 @@ export interface FetchfullyInstance extends RequestMethods {
   <T = any>(config: FetchfullyConfig): Promise<FetchfullyResponse<T>>;
   defaults: FetchfullyConfig;
   cache: FetchfullyCache;
-  create: (config?: FetchfullyConfig) => FetchfullyInstance;
   interrupts: Interrupts;
+}
+
+/** The default `Fetchfully` export: an instance that can also create instances. */
+export interface FetchfullyDefaultInstance extends FetchfullyInstance {
+  /** Creates an instance with its own config (merged over `defaults`), interrupts, and cache. */
+  create: (config?: FetchfullyConfig) => FetchfullyInstance;
 }

@@ -1,14 +1,11 @@
-import type {
-  FetchfullyCache,
-  FetchfullyResponse,
-  InvalidateTarget,
-} from "./types";
+import type { FetchfullyCache, InvalidateTarget } from "./types";
+import type { ParsedResponse } from "./response";
 
 /* ---------------------------------------------------------------------- */
 
 type Entry = {
   requestUrl: string;
-  response: FetchfullyResponse;
+  response: ParsedResponse;
   storedAt: number;
 };
 
@@ -17,7 +14,7 @@ type InvalidateListener = (matches: UrlMatcher) => void;
 
 export type Cache = {
   /** A stored response younger than `staleTime` ms, or `undefined`. */
-  read(key: string, staleTime: number): FetchfullyResponse | undefined;
+  read(key: string, staleTime: number): ParsedResponse | undefined;
   /**
    * Stores a response unless the cache was invalidated after `epoch` was
    * taken, so a request that started before an invalidation never stores
@@ -26,7 +23,7 @@ export type Cache = {
   write(
     key: string,
     requestUrl: string,
-    response: FetchfullyResponse,
+    response: ParsedResponse,
     epoch: number
   ): void;
   /** Changes on every invalidate / clear. Take it before a request starts. */

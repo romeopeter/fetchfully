@@ -8,7 +8,7 @@ import {
   TimeoutError,
   CancelError,
 } from "./utils/custom-request-errors";
-import { errorResponse } from "./response";
+import { errorResponse, type ParsedResponse } from "./response";
 import { attachActionMethods } from "./consumable-methods";
 import { createInFlight, requestKey } from "./in-flight";
 import { createCache } from "./cache";
@@ -94,7 +94,7 @@ const fetchFailure = (error: unknown): unknown => {
  */
 export function createFetch(
   factoryConfig: FetchfullyConfig = {}
-): Omit<FetchfullyInstance, "create"> {
+): FetchfullyInstance {
   const interrupts = createInterrupts();
   const inFlight = createInFlight();
   const cache = createCache({
@@ -157,12 +157,12 @@ export function createFetch(
     } catch (error) {
       // Invalid input, or a query or body value JSON.stringify can't handle;
       // errors stay values
-      const failed = errorResponse<T>(toError(error), undefined, undefined, refetch);
+      const failed: FetchfullyResponse<T> = { ...errorResponse<T>(toError(error)), refetch };
       return runResponseInterrupts(failed, interrupts.response);
     }
 
     // Each caller gets its own response object with its own refetch
-    const finalize = (response: FetchfullyResponse): FetchfullyResponse<T> => ({
+    const finalize = (response: ParsedResponse): FetchfullyResponse<T> => ({
       ...response,
       requestUrl: fullUrl,
       refetch,

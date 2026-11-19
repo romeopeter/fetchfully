@@ -1,12 +1,13 @@
-import type { FetchfullyConfig, FetchfullyResponse } from "./types";
+import type { FetchfullyConfig } from "./types";
+import type { ParsedResponse } from "./response";
 
 /* ---------------------------------------------------------------------- */
 
 /** One network attempt: fetch + parse. Receives the shared request's signal. */
-export type Execute = (signal: AbortSignal) => Promise<FetchfullyResponse>;
+export type Execute = (signal: AbortSignal) => Promise<ParsedResponse>;
 
 type Entry = {
-  promise: Promise<FetchfullyResponse>;
+  promise: Promise<ParsedResponse>;
   controller: AbortController;
   consumers: number;
 };
@@ -22,7 +23,7 @@ export type InFlight = {
     key: string | null,
     execute: Execute,
     callerSignal: AbortSignal
-  ): Promise<FetchfullyResponse>;
+  ): Promise<ParsedResponse>;
 };
 
 const abortError = () =>
@@ -84,7 +85,7 @@ export function createInFlight(): InFlight {
       const entry = (key !== null && entries.get(key)) || start(key, execute);
       entry.consumers++;
 
-      return new Promise<FetchfullyResponse>((resolve, reject) => {
+      return new Promise<ParsedResponse>((resolve, reject) => {
         const leave = () => {
           entry.consumers--;
 
