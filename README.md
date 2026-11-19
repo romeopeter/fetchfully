@@ -239,10 +239,12 @@ Errors are returned on `res.error`, never thrown. Each failure type has its own 
 | Class | When |
 |---|---|
 | `HttpError` | The server answered with a non-success status. Has `status`, `statusText`, and `URL`. |
-| `NetworkError` | The request never got a response (offline, DNS failure). |
-| `CorsError` | The browser blocked a cross-origin request. |
+| `NetworkError` | The request never got a response (offline, DNS failure). Browsers also report a blocked cross-origin request this way, because they don't tell scripts why a request failed. |
+| `CorsError` | The runtime's error says a cross-origin request was blocked. Browsers rarely do, so expect `NetworkError` there. |
 | `TimeoutError` | The `timeout` elapsed first. |
 | `CancelError` | Your `signal` aborted the request. |
+
+Invalid input, such as a malformed URL or header, is never sent. It comes back as the runtime's own `TypeError`, and `retries` doesn't retry it.
 
 ```javascript
 import { Fetchfully, HttpError, TimeoutError } from "fetchfully";

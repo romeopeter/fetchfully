@@ -243,6 +243,84 @@ await run("13. Cancelling through the signal still works", async () => {
 });
 
 // ---------------------------------------------------------------
+// Network failures across runtimes
+// ---------------------------------------------------------------
+
+// The TypeError message each runtime's fetch() rejects with when the network fails
+const NETWORK_MESSAGES = {
+  Node: "fetch failed",
+  Chrome: "Failed to fetch",
+  Firefox: "NetworkError when attempting to fetch resource.",
+  Safari: "Load failed",
+};
+
+await run("14. Every runtime's network failure is a retried NetworkError", async () => {
+  for (const [runtime, message] of Object.entries(NETWORK_MESSAGES)) {
+    reset(() => {
+      throw new TypeError(message);
+    });
+    const res = await api.get("users", undefined, { retries: 2, retryDelay: 1 });
+
+    assert(res.error instanceof NetworkError, `${runtime}: "${message}" → NetworkError`);
+    assert(calls.length === 3, `${runtime}: retried twice (${calls.length} calls)`);
+  }
+});
+
+await run("15. A failure that names CORS is a CorsError, never retried", async () => {
+  reset(() => {
+    throw new TypeError("Request blocked by CORS policy");
+  });
+  const res = await api.get("users", undefined, { retries: 2, retryDelay: 1 });
+
+  assert(res.error instanceof CorsError, "CORS message → CorsError");
+  assert(calls.length === 1, `not retried (${calls.length} call)`);
+});
+
+await run("16. Invalid input stays a TypeError and never reaches the network", async () => {
+  reset();
+  const badHeader = await api.get("users", undefined, {
+    headers: { "X-Bad": "line\nbreak" },
+    retries: 2,
+    retryDelay: 1,
+  });
+  assert(badHeader.error instanceof TypeError, `bad header → TypeError (got ${badHeader.error?.name})`);
+  assert(!(badHeader.error instanceof NetworkError), "bad header is not a NetworkError");
+  assert(calls.length === 0, `bad header: no network call (${calls.length})`);
+
+  // Node has no page to resolve a relative URL against
+  const relative = await Fetchfully.create({}).get("users", undefined, { retries: 2, retryDelay: 1 });
+  assert(relative.error instanceof TypeError, `relative URL in Node → TypeError (got ${relative.error?.name})`);
+  assert(calls.length === 0, `relative URL: no network call (${calls.length})`);
+
+  const circular = {};
+  circular.self = circular;
+  const unserializable = await api.post("users", circular);
+  assert(unserializable.isError, "a body JSON.stringify can't handle is an error value, not a rejection");
+});
+
+await run("17. Without a global Request (fetch-only mocks), failures still classify", async () => {
+  const SavedRequest = globalThis.Request;
+  delete globalThis.Request;
+
+  try {
+    assert(typeof globalThis.Request === "undefined", "Request removed for this test");
+
+    reset();
+    const ok = await api.get("users");
+    assert(ok.isSuccess, "requests still succeed");
+
+    reset(() => {
+      throw new TypeError(NETWORK_MESSAGES.Chrome);
+    });
+    const offline = await api.get("users", undefined, { retries: 1, retryDelay: 1 });
+    assert(offline.error instanceof NetworkError, "Chrome failure → NetworkError");
+    assert(calls.length === 2, `retried once (${calls.length} calls)`);
+  } finally {
+    globalThis.Request = SavedRequest;
+  }
+});
+
+// ---------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------
 

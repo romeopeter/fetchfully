@@ -7,7 +7,6 @@ import {
   CorsError,
   TimeoutError,
   CancelError,
-  HttpError,
 } from "./utils/custom-request-errors";
 import { errorResponse } from "./response";
 import { attachActionMethods } from "./consumable-methods";
@@ -32,6 +31,20 @@ const baseUrlOf = (config: FetchfullyConfig) =>
 
 const toError = (value: unknown): Error =>
   value instanceof Error ? value : new Error(String(value));
+
+// fetch() rejects with a TypeError whenever the network fails, and every
+// runtime words it differently: "fetch failed" (Node), "Failed to fetch"
+// (Chrome), "NetworkError when attempting to fetch resource." (Firefox),
+// "Load failed" (Safari). So the type decides, not the wording. Browsers hide
+// why a cross-origin request failed, so CorsError needs a message that says
+// so. Anything else (an AbortError) passes through.
+const fetchFailure = (error: unknown): unknown => {
+  if (!(error instanceof TypeError)) return error;
+
+  return /CORS|cross-origin/.test(error.message)
+    ? new CorsError("CORS error occurred")
+    : new NetworkError("Network error occurred");
+};
 
 /**
  * Creates an instance of the core fetcher function
@@ -72,14 +85,43 @@ export function createFetch(
     }
 
     let fullUrl: string;
+    let fetchConfig: RequestInit;
 
     try {
       fullUrl = constructUrl(baseUrlOf(config), config.path, {
         query: config.query,
         queryArrayFormat: config.queryArrayFormat,
       });
+
+      // No signal here: the in-flight registry gives each network request its
+      // own, and this caller's signal only decides when the caller leaves
+      fetchConfig = {
+        method: config.method,
+        body: undefined,
+        headers: config.headers,
+        credentials: config.credentials,
+        keepalive: config.keepalive,
+        mode: config.mode,
+      };
+
+      if (config.body && config.method !== "GET") {
+        if (config.body instanceof FormData) {
+          fetchConfig.body = config.body;
+        } else if (typeof config.body === "string") {
+          fetchConfig.body = config.body;
+        } else {
+          fetchConfig.body = JSON.stringify(config.body);
+        }
+      }
+
+      // Input fetch() would reject (a bad URL, header or mode) fails here as a
+      // plain TypeError, before any attempt, so a TypeError from fetch() itself
+      // can only mean the network failed. Skipped where `Request` is missing,
+      // e.g. a test environment that only mocks `fetch`.
+      if (typeof Request === "function") new Request(fullUrl, fetchConfig);
     } catch (error) {
-      // e.g. a query value JSON.stringify can't handle; errors stay values
+      // Invalid input, or a query or body value JSON.stringify can't handle;
+      // errors stay values
       const failed = errorResponse<T>(toError(error), undefined, undefined, refetch);
       return runResponseInterrupts(failed, interrupts.response);
     }
@@ -112,27 +154,6 @@ export function createFetch(
       const forwardAbort = () => internalController.abort(config.signal?.reason);
       let timeoutID: ReturnType<typeof setTimeout> | undefined;
 
-      // No signal here: the in-flight registry gives each network request its
-      // own, and this caller's signal only decides when the caller leaves
-      const fetchConfig: RequestInit = {
-        method: config.method,
-        body: undefined,
-        headers: config.headers,
-        credentials: config.credentials,
-        keepalive: config.keepalive,
-        mode: config.mode,
-      };
-
-      if (config.body && config.method !== "GET") {
-        if (config.body instanceof FormData) {
-          fetchConfig.body = config.body;
-        } else if (typeof config.body === "string") {
-          fetchConfig.body = config.body;
-        } else {
-          fetchConfig.body = JSON.stringify(config.body);
-        }
-      }
-
       try {
         // Added inside `try` so `finally` always removes it: a long-lived
         // caller signal would otherwise keep one listener (and this request's
@@ -152,7 +173,14 @@ export function createFetch(
         const epoch = cache.epoch();
 
         const execute = async (signal: AbortSignal) => {
-          const originResponse = await fetch(fullUrl, { ...fetchConfig, signal });
+          let originResponse: Response;
+
+          try {
+            originResponse = await fetch(fullUrl, { ...fetchConfig, signal });
+          } catch (error) {
+            throw fetchFailure(error);
+          }
+
           const response = isGet
             ? await requestQuery(originResponse)
             : await mutationQuery(originResponse);
@@ -177,22 +205,12 @@ export function createFetch(
 
         break; // success — exit retry loop, response interrupts will run below
       } catch (error: any) {
-        let fetchError: Error;
-        let retryable = false;
+        // NetworkError and CorsError come from fetchFailure(); anything else
+        // that isn't an abort (e.g. a body that fails to parse) is kept as is
+        let fetchError: Error = error;
+        let retryable = error instanceof NetworkError;
 
-        if (error instanceof TypeError) {
-          if (
-            error.message.includes("CORS") ||
-            error.message.includes("cross-origin")
-          ) {
-            fetchError = new CorsError("CORS error occurred");
-          } else if (error.message.includes("fetch failed")) {
-            fetchError = new NetworkError("Network error occurred");
-            retryable = true;
-          } else {
-            fetchError = error;
-          }
-        } else if (error.name === "AbortError") {
+        if (error?.name === "AbortError") {
           if (config.signal?.aborted) {
             // User cancelled — never retry
             fetchError = new CancelError("Request cancelled");
@@ -200,10 +218,6 @@ export function createFetch(
             fetchError = new TimeoutError("Request timed out");
             retryable = true;
           }
-        } else if (error instanceof HttpError) {
-          fetchError = error;
-        } else {
-          fetchError = error;
         }
 
         if (retryable && attempt < maxRetries) {
