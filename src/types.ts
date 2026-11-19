@@ -37,10 +37,54 @@ export type FetchfullyConfig = {
    * Ignored for non-GET methods. Default: `false`.
    */
   dedupe?: boolean;
+  /**
+   * Keep successful GET responses in this instance's in-memory cache and serve
+   * them without a network request while fresh. Off by default. `false` turns
+   * it off for one call (no read, no write). This is Fetchfully's own cache,
+   * not the browser HTTP cache. Caching also shares in-flight requests, as
+   * `dedupe` does.
+   */
+  cache?: CacheOptions | false;
   whenSuccessful?: (data: any) => void;
   whenFailed?: (data: Error) => void;
   whenDone?: (data: any, Error: null | Error) => void;
 };
+
+export type CacheOptions = {
+  /**
+   * How long, in ms, a stored response is served without a network request.
+   * `0` always goes to the network but still stores the result; `Infinity`
+   * never expires (until invalidated or evicted).
+   */
+  staleTime: number;
+  /**
+   * Most responses kept per instance; the least recently used is evicted
+   * first. Read from the instance config (ignored per call). Default: 100.
+   */
+  maxEntries?: number;
+};
+
+/** A request path or URL prefix, or a predicate on each cached request URL. */
+export type InvalidateTarget = string | ((requestUrl: string) => boolean);
+
+/** Per-instance response cache, available as `instance.cache`. */
+export interface FetchfullyCache {
+  /**
+   * Drops matching responses and re-runs subscribed queries that last
+   * requested a matching URL. A string is resolved like a request path
+   * against the instance's base URL and matches it plus anything below it:
+   * `"users"` matches `users`, `users/1`, and `users?page=2`, not `users-admin`.
+   * Works as a "this data changed" signal even when caching is off.
+   */
+  invalidate(target: InvalidateTarget): void;
+  /** Drops every response and re-runs every subscribed query. */
+  clear(): void;
+  /**
+   * Called with a URL matcher on every `invalidate` / `clear`. Returns an
+   * unsubscribe function. `createQuery` uses this to re-run itself.
+   */
+  onInvalidate(listener: (matches: (requestUrl: string) => boolean) => void): () => void;
+}
 
 // Request type
 export type RequestStatus = "idle" | "loading" | "success" | "error";
@@ -61,6 +105,8 @@ type FetchfullyResponseBase<T> = {
   // Headers and status
   statusCode?: number;
   headers?: RequestHeaders;
+  /** The URL Fetchfully requested (after path and query building). */
+  requestUrl?: string;
 
   // Control methods
   refetch?: (
@@ -142,10 +188,15 @@ export interface Query<T = any> {
   abort(reason?: unknown): void;
 }
 
-/** Anything callable like a Fetchfully instance. */
-export type QueryFetcher<T = any> = (
+/**
+ * Anything callable like a Fetchfully instance. When it also has a `cache`
+ * (as instances do), queries re-run on matching invalidations.
+ */
+export type QueryFetcher<T = any> = ((
   config: FetchfullyConfig,
-) => Promise<FetchfullyResponse<T>>;
+) => Promise<FetchfullyResponse<T>>) & {
+  cache?: Pick<FetchfullyCache, "onInvalidate">;
+};
 
 /* ---------------------------------------------------------------------- */
 // Query groups (several queries observed as one)
@@ -262,6 +313,7 @@ export type Interrupts = {
 export interface FetchfullyInstance extends RequestMethods {
   <T = any>(config: FetchfullyConfig): Promise<FetchfullyResponse<T>>;
   defaults: FetchfullyConfig;
+  cache: FetchfullyCache;
   create: (config?: FetchfullyConfig) => FetchfullyInstance;
   interrupts: Interrupts;
 }

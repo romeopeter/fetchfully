@@ -29,16 +29,11 @@ const abortError = () =>
   new DOMException("The operation was aborted.", "AbortError");
 
 /**
- * Builds the dedupe key for a request, or `null` when it must not be shared.
- * Only GET requests with `dedupe: true` are shared. The key covers everything
- * that can change the response: URL (with query), credentials, mode, headers.
+ * Builds the key that identifies a GET request for sharing and caching. It
+ * covers everything that can change the response: URL (with query),
+ * credentials, mode, and headers (so a different auth header never shares).
  */
-export function dedupeKey(
-  config: FetchfullyConfig,
-  fullUrl: string
-): string | null {
-  if (!config.dedupe || config.method !== "GET") return null;
-
+export function requestKey(config: FetchfullyConfig, fullUrl: string): string {
   const headers = Object.entries(config.headers ?? {})
     .map(([name, value]) => [name.toLowerCase(), String(value)])
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));

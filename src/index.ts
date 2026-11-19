@@ -16,6 +16,9 @@ export type {
   QueryGroupState,
   QueryGroupData,
   QueryGroupListener,
+  CacheOptions,
+  FetchfullyCache,
+  InvalidateTarget,
 } from "./types";
 
 // Main implementation

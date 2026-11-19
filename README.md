@@ -19,6 +19,7 @@
 - **Errors as values**: Every response settles to success or error; narrow on `isSuccess` instead of wrapping calls in `try/catch`.
 - **Live request status**: `createQuery()` tracks idle, loading, success, and error as an observable that plugs into React, Vue, Svelte, Solid, or Angular.
 - **Multiple requests**: `combineQueries()` gives several queries one combined status, and opt-in `dedupe` shares a single network call between identical GETs in flight at the same time.
+- **Caching**: An opt-in, per-instance response cache with freshness, size limits, and path-based invalidation that refreshes the queries showing the changed data.
 - **Refetch**: Re-run a request without reconstructing its config.
 - **Interrupts**: Register request and response interrupt handlers per instance, with eject support.
 - **Fully typed**: Written in TypeScript with all necessary types exported.
@@ -399,7 +400,7 @@ users.abort();                             // cancel; state.error is a CancelErr
 - **Nothing runs on creation.** Call `run()` when you want the request to go out (this keeps server rendering and conditional fetching in your hands).
 - **The newest run wins.** Calling `run()` while a request is in flight aborts the older one, and its result is dropped.
 - **`run()` never rejects.** Failures, including thrown config errors, end up in `state.error`.
-- **One query, many subscribers.** Create a query once (for example at module level) and subscribe to it from as many components as you like. They all share one state, and only one request is ever in flight. There is no response cache: each `run()` sends a fresh request.
+- **One query, many subscribers.** Create a query once (for example at module level) and subscribe to it from as many components as you like. They all share one state, and only one request is ever in flight. Each `run()` sends a request unless the instance has [caching](#caching) turned on.
 
 ### React
 
@@ -519,8 +520,75 @@ Set it on `Fetchfully.defaults`, on an instance, or per call (`get("/me", undefi
 
 - **Each caller stays independent.** Every caller gets its own response object, runs the response interrupts, and keeps its own `timeout` and `signal`. A caller that cancels leaves alone; the network request is only aborted once every caller has cancelled.
 - **The data is shared.** Callers receive the same parsed `data` object, so treat it as read-only.
-- **It is not a cache.** Requests that don't overlap in time each go to the network.
+- **It is not a cache.** Requests that don't overlap in time each go to the network. For that, see [Caching](#caching), which includes deduplication.
 - **GET only.** Mutations are never deduplicated.
+
+---
+
+## Caching
+
+Each instance has its own in-memory response cache. Turn it on with `cache`, and successful GET responses are served from memory while they're fresh.
+
+```javascript
+const api = Fetchfully.create({
+  baseURL: "https://api.example.com",
+  cache: { staleTime: 30_000 }, // serve stored responses for 30 seconds
+});
+
+await api.get("/users"); // network, then stored
+await api.get("/users"); // from the cache, no request
+```
+
+| Option | Meaning |
+|---|---|
+| `staleTime` | How long (ms) a stored response is served without a request. `0` always goes to the network but still stores the result; `Infinity` keeps it until invalidated. |
+| `maxEntries` | Most responses kept per instance (default 100). The least recently used goes first. Set it on the instance. |
+
+Like `dedupe`, `cache` can be set on `Fetchfully.defaults`, an instance, or a single call. Caching also shares in-flight requests, so you don't need `dedupe` as well.
+
+```javascript
+await api.get("/users", undefined, { cache: false });                 // skip the cache for this call
+await api.get("/users", undefined, { cache: { staleTime: 5_000 } });  // stricter freshness for this call
+
+const res = await api.get("/users");
+await res.refetch();                                // always a fresh request; updates the cache
+await usersQuery.run({ cache: { staleTime: 0 } }); // same for a query
+```
+
+### Invalidation
+
+After a change on the server, invalidate what it affected. A path matches itself and everything below it:
+
+```javascript
+await api.post("/users", newUser);
+api.cache.invalidate("/users"); // users, users/42, users?page=2, but not users-admin
+
+api.cache.invalidate("https://other.example.com/feed"); // a full URL
+api.cache.invalidate((url) => url.includes("/admin/"));  // or any rule
+api.cache.clear();                                       // everything
+```
+
+Queries showing invalidated data refresh themselves. Any `createQuery` (or `combineQueries` group) that is currently subscribed and whose last request matches runs again with its last options. Unsubscribed queries are left alone. This works even with caching off, so `invalidate` doubles as a "this data changed" signal:
+
+```javascript
+const users = createQuery(api, { path: "users" });
+users.subscribe(render);
+await users.run();
+
+await api.post("/users", newUser);
+api.cache.invalidate("/users"); // `users` reloads; subscribers see loading → success
+```
+
+Each response also has `requestUrl`, the URL Fetchfully requested, which is what invalidation matches against.
+
+### Good to know
+
+- **GET only, successes only.** Errors and mutations are never stored.
+- **Shared data.** Every caller served from the cache gets the same `data` object, so treat it as read-only.
+- **Headers are part of the key.** A different `Authorization` header is a different entry, so one user's responses aren't served to another.
+- **Invalidation wins over requests already in flight.** A request that started before an `invalidate` still returns its result to its callers, but isn't stored, and later requests don't join it.
+- **On servers, use one instance per incoming request.** A cache on a long-lived shared instance would be shared by every user of the server.
+- **Not the browser's HTTP cache.** This is Fetchfully's own memory cache. `Cache-Control` headers don't affect it.
 
 ---
 

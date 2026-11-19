@@ -11,7 +11,8 @@ import {
 } from "./utils/custom-request-errors";
 import { errorResponse } from "./response";
 import { attachActionMethods } from "./consumable-methods";
-import { createInFlight, dedupeKey } from "./in-flight";
+import { createInFlight, requestKey } from "./in-flight";
+import { createCache } from "./cache";
 import {
   createInterrupts,
   runRequestInterrupts,
@@ -25,6 +26,13 @@ import {
 
 /* ------------------------------------------------------------------------------------ */
 
+// The URL that paths are joined onto: `baseURL` (trailing slashes removed) or `url`
+const baseUrlOf = (config: FetchfullyConfig) =>
+  config.baseURL ? config.baseURL.replace(/\/+$/, "") : config.url ?? "";
+
+const toError = (value: unknown): Error =>
+  value instanceof Error ? value : new Error(String(value));
+
 /**
  * Creates an instance of the core fetcher function
  *
@@ -36,6 +44,11 @@ export function createFetch(
 ): Omit<FetchfullyInstance, "create"> {
   const interrupts = createInterrupts();
   const inFlight = createInFlight();
+  const cache = createCache({
+    // Read lazily, so `Fetchfully.defaults.cache = {...}` set later applies
+    getMaxEntries: () => (factoryConfig.cache ? factoryConfig.cache.maxEntries : undefined),
+    resolvePath: (path) => constructUrl(baseUrlOf(factoryConfig), path),
+  });
 
   async function fetcher<T = any>(
     initConfig: FetchfullyConfig
@@ -43,18 +56,49 @@ export function createFetch(
     const merged = mergeConfig(factoryConfig, initConfig);
     const config = await runRequestInterrupts(merged, interrupts.request);
 
+    // Refetching always goes to the network; with caching on, it skips the
+    // cache read but still updates the stored entry
     const refetch = (override?: Partial<FetchfullyConfig>) =>
-      fetcher<T>({ ...initConfig, ...override });
-
-    const requestQueryParameter = {
-      query: config.query,
-      queryArrayFormat: config.queryArrayFormat,
-    };
+      fetcher<T>({
+        ...initConfig,
+        ...(config.cache ? { cache: { ...config.cache, staleTime: 0 } } : {}),
+        ...override,
+      });
 
     if (config.baseURL && config.url) {
       throw new Error(
         "Fetchfully: cannot set both 'baseURL' and 'url'. Use 'baseURL' with 'path' for path segments, or 'url' for a full URL."
       );
+    }
+
+    let fullUrl: string;
+
+    try {
+      fullUrl = constructUrl(baseUrlOf(config), config.path, {
+        query: config.query,
+        queryArrayFormat: config.queryArrayFormat,
+      });
+    } catch (error) {
+      // e.g. a query value JSON.stringify can't handle; errors stay values
+      const failed = errorResponse<T>(toError(error), undefined, undefined, refetch);
+      return runResponseInterrupts(failed, interrupts.response);
+    }
+
+    // Each caller gets its own response object with its own refetch
+    const finalize = (response: FetchfullyResponse): FetchfullyResponse<T> => ({
+      ...response,
+      requestUrl: fullUrl,
+      refetch,
+    });
+
+    const isGet = config.method === "GET";
+    const cacheOptions = isGet && config.cache ? config.cache : null;
+    const key =
+      isGet && (config.dedupe || cacheOptions) ? requestKey(config, fullUrl) : null;
+
+    if (cacheOptions && key !== null) {
+      const hit = cache.read(key, cacheOptions.staleTime ?? 0);
+      if (hit) return runResponseInterrupts(finalize(hit), interrupts.response);
     }
 
     const maxRetries = config.retries ?? 0;
@@ -103,30 +147,33 @@ export function createFetch(
           timeoutID = setTimeout(() => internalController.abort(), config.timeout);
         }
 
-        const baseUrl = config.baseURL
-          ? config.baseURL.replace(/\/+$/, "")
-          : config.url ?? "";
-
-        const fullUrl = constructUrl(baseUrl, config.path, requestQueryParameter);
+        // Taken before the request starts: an invalidation after this point
+        // stops the result from being cached and from being joined below
+        const epoch = cache.epoch();
 
         const execute = async (signal: AbortSignal) => {
           const originResponse = await fetch(fullUrl, { ...fetchConfig, signal });
+          const response = isGet
+            ? await requestQuery(originResponse)
+            : await mutationQuery(originResponse);
 
-          return config.method !== "GET"
-            ? mutationQuery(originResponse)
-            : requestQuery(originResponse);
+          if (cacheOptions && key !== null && response.isSuccess) {
+            cache.write(key, fullUrl, response, epoch);
+          }
+
+          return response;
         };
 
-        // Joins an identical in-flight GET when `dedupe` is on; otherwise runs alone.
-        // Rejects with an AbortError if this caller's signal or timeout fires first.
+        // Joins an identical in-flight GET when `dedupe` or `cache` is on;
+        // otherwise runs alone. Rejects with an AbortError if this caller's
+        // signal or timeout fires first.
         const shared = await inFlight.join(
-          dedupeKey(config, fullUrl),
+          key === null ? null : `${epoch} ${key}`,
           execute,
           internalController.signal
         );
 
-        // Each caller gets its own response object and refetch
-        result = { ...shared, refetch };
+        result = finalize(shared);
 
         break; // success — exit retry loop, response interrupts will run below
       } catch (error: any) {
@@ -164,7 +211,7 @@ export function createFetch(
           continue;
         }
 
-        result = errorResponse<T>(fetchError, undefined, undefined, refetch);
+        result = finalize(errorResponse(fetchError));
         break;
       } finally {
         clearTimeout(timeoutID);
@@ -173,12 +220,7 @@ export function createFetch(
 
     // Unreachable at runtime — `result` is always set inside the loop
     if (!result) {
-      result = errorResponse<T>(
-        new NetworkError("Request failed"),
-        undefined,
-        undefined,
-        refetch
-      );
+      result = finalize(errorResponse(new NetworkError("Request failed")));
     }
 
     return runResponseInterrupts(result, interrupts.response);
@@ -186,6 +228,7 @@ export function createFetch(
 
   fetcher.defaults = factoryConfig;
   fetcher.interrupts = interrupts;
+  fetcher.cache = cache.public;
 
   return attachActionMethods(fetcher as FetchfullyInstance);
 }
