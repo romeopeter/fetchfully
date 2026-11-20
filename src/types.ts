@@ -62,11 +62,11 @@ export type FetchfullyConfig = {
    * `dedupe` does.
    */
   cache?: CacheOptions | false;
-  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
+  /** Not implemented yet: setting it has no effect. Planned for a later release. */
   whenSuccessful?: (data: any) => void;
-  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
+  /** Not implemented yet: setting it has no effect. Planned for a later release. */
   whenFailed?: (data: Error) => void;
-  /** @deprecated Never implemented: setting it has no effect. Removed in 2.0. */
+  /** Not implemented yet: setting it has no effect. Planned for a later release. */
   whenDone?: (data: any, Error: null | Error) => void;
 };
 
@@ -139,7 +139,10 @@ type FetchfullyResponseBase<T> = {
   refetch: (
     override?: Partial<FetchfullyConfig>,
   ) => Promise<FetchfullyResponse<T>>;
-  /** @deprecated Never implemented: always `undefined`. Pass a `signal` to cancel. Removed in 2.0. */
+  /**
+   * Not implemented yet: always `undefined`. Planned for a later release.
+   * Until then, pass a `signal` to cancel a request.
+   */
   cancel?: () => void;
 };
 
