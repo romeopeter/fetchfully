@@ -826,6 +826,8 @@ node test/core.smoke.mjs  # run one test file
 
 The tests run against `dist`, so build first. `test/core`, `test/query`, `test/multi`, and `test/cache` (each `*.smoke.mjs`) use a mocked `fetch` and run offline. `test/interrupts.smoke.mjs` and `test/test-smoke.mjs` call live APIs and need a network connection.
 
+`npm publish` runs the build first (`prepublishOnly`), so a release always ships a fresh `dist`. Each release's changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
 Report bugs at [github.com/romeopeter/fetchfully/issues](https://github.com/romeopeter/fetchfully/issues).
 
 ---
