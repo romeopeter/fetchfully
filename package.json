@@ -1,6 +1,6 @@
 {
   "name": "fetchfully",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "JavaScript Fetch API with power pack ⚡️",
   "main": "./dist/fetchfully.cjs",
   "module": "./dist/fetchfully.mjs",
@@ -9,18 +9,25 @@
   "public": true,
   "exports": {
     ".": {
-      "import": "./dist/fetchfully.mjs",
-      "require": "./dist/fetchfully.cjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/fetchfully.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/fetchfully.cjs"
+      }
     }
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
