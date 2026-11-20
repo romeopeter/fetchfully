@@ -9,9 +9,14 @@
   "public": true,
   "exports": {
     ".": {
-      "import": "./dist/fetchfully.mjs",
-      "require": "./dist/fetchfully.cjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/fetchfully.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/fetchfully.cjs"
+      }
     }
   },
   "files": [
